@@ -79,8 +79,32 @@ class TwitterAPIWrapper:
 
         return {
             'urls': urls_list,
-            'text': text,
+            'tweet_text': text,
         }
+
+    # www = what we want
+    def get_www_list(self, status_id_list: list):
+        r = []
+        for status_id in status_id_list:
+            www = self.get_what_we_want(status_id)
+            r.append(www)
+        return r
+
+    def get_www_flatten_list(self, status_id_list):
+        """
+        :param status_id_list: [str, ...]
+        :return: [{'url': str, 'text': str}, ...]
+        """
+        r = []
+        www_list = self.get_www_list(status_id_list)
+        for www in www_list:
+            www_text = www['text']
+            for url in www['urls']:
+                r.append({
+                    'url': url,
+                    'tweet_text': www_text
+                })
+        return r
 
 
 def get_contents(url):
