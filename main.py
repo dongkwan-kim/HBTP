@@ -14,7 +14,7 @@ def label_path(twitter_year):
     return './rumor_detection_acl2017/{0}/label.txt'.format(twitter_year)
 
 
-def get_id_label_dict(path):
+def get_id_label_list(path):
     """
     :param path: Result of get_label_path
     :return: [{'twee_id': str, 'label': str}, ...]
@@ -83,27 +83,19 @@ class TwitterAPIWrapper:
         }
 
     # www = what we want
-    def get_www_list(self, status_id_list: list):
-        r = []
-        for status_id in status_id_list:
-            www = self.get_what_we_want(status_id)
-            r.append(www)
-        return r
-
-    def get_www_flatten_list(self, status_id_list):
+    def get_www_flatten(self, status_id):
         """
-        :param status_id_list: [str, ...]
+        :param status_id: str, ...
         :return: [{'url': str, 'text': str}, ...]
         """
         r = []
-        www_list = self.get_www_list(status_id_list)
-        for www in www_list:
-            www_text = www['text']
-            for url in www['urls']:
-                r.append({
-                    'url': url,
-                    'tweet_text': www_text
-                })
+        www = self.get_what_we_want(status_id)
+        www_text = www['tweet_text']
+        for url in www['urls']:
+            r.append({
+                'url': url,
+                'tweet_text': www_text
+            })
         return r
 
 
@@ -139,8 +131,9 @@ class WriterWrapper:
         if not _fieldnames:
             _fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
 
-        self.f = open(file_name, 'w')
+        self.f = open(file_name, 'w', encoding='utf-8')
         self.wr = csv.DictWriter(self.f, fieldnames=_fieldnames)
+        self.wr.writeheader()
 
     def write_row(self, dct):
         self.wr.writerow(dct)
@@ -149,5 +142,32 @@ class WriterWrapper:
         self.f.close()
 
 
+def merge_dicts(lst_of_dct):
+    new_dict = {}
+    for dct in lst_of_dct:
+        new_dict.update(dct)
+    return new_dict
+
+
 if __name__ == '__main__':
     my_api = TwitterAPIWrapper('./config.ini')
+    writer = WriterWrapper()
+
+    twitter_years = ['twittertest']
+
+    # str
+    for ty in twitter_years:
+        id_label_list = get_id_label_list(label_path(ty))
+
+        # {'tweet_id': str, 'label': str}
+        for id_label in id_label_list:
+            tweet_id = id_label['tweet_id']
+            www_list = my_api.get_www_flatten(tweet_id)
+
+            # {'url': str, 'tweet_text': str}
+            for www in www_list:
+                url = www['url']
+                content_dict = get_contents(url)
+
+                merged_dict = merge_dicts([content_dict, www, id_label])
+                writer.write_row(merged_dict)
