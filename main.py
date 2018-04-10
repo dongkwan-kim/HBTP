@@ -5,6 +5,7 @@ __author__ = 'Dongkwan Kim'
 
 import twitter
 import configparser
+from newspaper import Article
 
 
 def label_path(twitter_year):
@@ -75,6 +76,22 @@ class TwitterAPIWrapper:
             'urls': urls_list,
             'text': text,
         }
+
+
+def get_contents(url):
+    """
+    :param url:
+    :return: [title, text]
+    """
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        r = [article.title, article.text]
+    except:
+        r = [False, False]
+
+    return r
 
 
 if __name__ == '__main__':
