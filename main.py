@@ -17,14 +17,17 @@ def label_path(twitter_year):
 def get_id_label_dict(path):
     """
     :param path: Result of get_label_path
-    :return: {twee_id: label}
+    :return: [{'twee_id': str, 'label': str}, ...]
     """
     label_txt = open(path, "r").readlines()
 
     # [[label, tweet_id], ...]
     label_pairs = [x.strip().split(':') for x in label_txt]
 
-    return dict([(tweet_id, label) for label, tweet_id in label_pairs])
+    return [{
+        'tweet_id': tweet_id,
+        'label': label
+    } for label, tweet_id in label_pairs]
 
 
 def api_twitter(config_file_path):
@@ -63,7 +66,7 @@ class TwitterAPIWrapper:
     def get_what_we_want(self, status_id):
         """
         :param status_id:
-        :return: {urls: -, text: -}
+        :return: {urls: list of str, text: str}
         """
         status_dict = self.get_status_dict(status_id)
 
@@ -83,15 +86,23 @@ class TwitterAPIWrapper:
 def get_contents(url):
     """
     :param url:
-    :return: [title, text]
+    :return: {'crawled_or_error_log': boolean or str, 'title': str, 'content': str]
     """
     try:
         article = Article(url)
         article.download()
         article.parse()
-        r = [article.title, article.text]
-    except:
-        r = [False, False]
+        r = {
+            'crawled_or_error_log': True,
+            'title': article.title,
+            'content': article.text
+        }
+    except Exception as e:
+        r = {
+            'crawled_or_error_log': str(e),
+            'title': '',
+            'content': ''
+        }
 
     return r
 
