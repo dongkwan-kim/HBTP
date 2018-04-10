@@ -7,6 +7,8 @@ contents-crawler-ma2017detect
 ├── main.py
 └── rumor_detection_acl2017
     ├── README.txt
+    ├── twittertest (* My own directory for the test)
+    │   ├── label.txt
     ├── twitter15
     │   ├── label.txt
     │   └── tree
