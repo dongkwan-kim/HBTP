@@ -7,6 +7,23 @@ import twitter
 import configparser
 
 
+def label_path(twitter_year):
+    return './rumor_detection_acl2017/{0}/label.txt'.format(twitter_year)
+
+
+def get_id_label_dict(path):
+    """
+    :param path: Result of get_label_path
+    :return: {twee_id: label}
+    """
+    label_txt = open(path, "r").readlines()
+
+    # [[label, tweet_id], ...]
+    label_pairs = [x.strip().split(':') for x in label_txt]
+
+    return dict([(tweet_id, label) for label, tweet_id in label_pairs])
+
+
 def api_twitter(config_file_path):
     config = configparser.ConfigParser()
     config.read(config_file_path)
