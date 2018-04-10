@@ -1,0 +1,9 @@
+certifi==2018.1.18
+chardet==3.0.4
+future==0.16.0
+idna==2.6
+oauthlib==2.0.7
+python-twitter==3.4.1
+requests==2.18.4
+requests-oauthlib==0.8.0
+urllib3==1.22
