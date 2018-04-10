@@ -6,6 +6,8 @@ __author__ = 'Dongkwan Kim'
 import twitter
 import configparser
 from newspaper import Article
+import csv
+import datetime
 
 
 def label_path(twitter_year):
@@ -92,6 +94,24 @@ def get_contents(url):
         r = [False, False]
 
     return r
+
+
+class WriterWrapper:
+
+    def __init__(self, _filename='contents_crawling_{0}.csv', _fieldnames=None):
+        file_name = _filename.format(datetime.datetime.now())
+
+        if not _fieldnames:
+            _fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
+
+        self.f = open(file_name, 'w')
+        self.wr = csv.DictWriter(self.f, fieldnames=_fieldnames)
+
+    def write_row(self, dct):
+        self.wr.writerow(dct)
+
+    def close(self):
+        self.f.close()
 
 
 if __name__ == '__main__':
