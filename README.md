@@ -1,6 +1,20 @@
 # contents-crawler-ma2017detect
 Python crawler for tweet contents of the ma2017detect-dataset
 
+## Directory Structure
+```
+contents-crawler-ma2017detect
+├── main.py
+└── rumor_detection_acl2017
+    ├── README.txt
+    ├── twitter15
+    │   ├── label.txt
+    │   └── tree
+    └── twitter16
+        ├── label.txt
+        └── tree
+```
+
 ## References
 - Liu, Xiaomo, et al. "Real-time rumor debunking on twitter." Proceedings of the 24th ACM International on Conference on Information and Knowledge Management. ACM, 2015.
 - Ma, Jing, et al. "Detecting Rumors from Microblogs with Recurrent Neural Networks." IJCAI. 2016.
