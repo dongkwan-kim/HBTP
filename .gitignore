@@ -99,3 +99,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+rumor_detection_acl2017/
+.DS_Store
