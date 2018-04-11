@@ -8,6 +8,7 @@ import configparser
 from newspaper import Article
 import csv
 import datetime
+import time
 
 
 def label_path(twitter_year):
@@ -63,12 +64,16 @@ class TwitterAPIWrapper:
         status = self.get_status(status_id)
         return status.AsDict()
 
-    def get_what_we_want(self, status_id):
+    def get_what_we_want(self, status_id, delay=1):
         """
+        :param delay: int or float (sec)
         :param status_id:
         :return: {urls: list of str, text: str}
         """
         status_dict = self.get_status_dict(status_id)
+
+        # Timer delay
+        time.sleep(delay)
 
         # urls: list
         urls = status_dict['urls']
@@ -83,13 +88,14 @@ class TwitterAPIWrapper:
         }
 
     # www = what we want
-    def get_www_flatten(self, status_id):
+    def get_www_flatten(self, status_id, delay=1):
         """
+        :param delay: int or float (sec)
         :param status_id: str, ...
         :return: [{'url': str, 'text': str}, ...]
         """
         r = []
-        www = self.get_what_we_want(status_id)
+        www = self.get_what_we_want(status_id, delay)
         www_text = www['tweet_text']
         for url in www['urls']:
             r.append({
