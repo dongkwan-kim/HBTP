@@ -94,7 +94,11 @@ class TwitterAPIWrapper:
         :return: [{'url': str, 'text': str}, ...]
         """
         r = []
-        www = self.get_what_we_want(status_id, delay)
+        try:
+            www = self.get_what_we_want(status_id, delay)
+        except Exception as e:
+            return [{'url': str(e), 'tweet_text': ''}]
+
         www_text = www['tweet_text']
         for url in www['urls']:
             r.append({
@@ -139,12 +143,12 @@ def story_table(config_name):
     my_api = TwitterAPIWrapper(config_name)
 
     fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
-    writer = WriterWrapper('story_table', fieldnames)
 
-    twitter_years = ['twittertest']
+    twitter_years = ['twitter16', 'twitter15']
 
     # str
     for ty in twitter_years:
+        writer = WriterWrapper('story_table_{0}'.format(ty), fieldnames)
         id_label_list = get_id_label_list(label_path(ty))
 
         # {'tweet_id': str, 'label': str}
@@ -159,6 +163,7 @@ def story_table(config_name):
 
                 merged_dict = merge_dicts([content_dict, www, id_label])
                 writer.write_row(merged_dict)
+                print(merged_dict)
 
 
 if __name__ == '__main__':

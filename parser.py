@@ -61,12 +61,11 @@ def event_table():
     """
     :return: .csv: [event_id, user_id, parent_id, story_id, time_stamp]
     """
-    fieldnames = ['event_id', 'parent_id', 'user_id', 'story_id', 'time_stamp']
-    writer = WriterWrapper('event_table', fieldnames)
-
     twitter_years = ['twitter15', 'twitter16']
 
+    fieldnames = ['event_id', 'parent_id', 'user_id', 'story_id', 'time_stamp']
     for t_year in twitter_years:
+        writer = WriterWrapper('event_table_{0}'.format(t_year), fieldnames)
         t_dir = tree_dir(t_year)
         t_tree_names = get_tree_names(t_year)
         for t_event_txt in t_tree_names:
