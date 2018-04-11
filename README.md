@@ -1,10 +1,11 @@
-# contents-crawler-ma2017detect
-Python crawler for tweet contents of the ma2017detect-dataset
+# complete-ma2017detect
+Make ma2017detect-dataset complete w/ crawler and parser
 
 ## Directory Structure
 ```
 contents-crawler-ma2017detect
-├── main.py
+├── crawler.py
+├── parser.py
 └── rumor_detection_acl2017
     ├── README.txt
     ├── twittertest (* My own directory for the test)
