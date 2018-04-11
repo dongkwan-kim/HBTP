@@ -35,6 +35,9 @@ class Event:
         self.story_id = story_id
         self.time_stamp = time_stamp
 
+    def get_dict(self):
+        return self.__dict__
+
 
 def event_one_line(line, story_id=None):
     """
@@ -58,8 +61,20 @@ def event_table():
     """
     :return: .csv: [event_id, user_id, parent_id, story_id, time_stamp]
     """
-    writer = WriterWrapper('event_table')
+    fieldnames = ['event_id', 'parent_id', 'user_id', 'story_id', 'time_stamp']
+    writer = WriterWrapper('event_table', fieldnames)
+
+    twitter_years = ['twitter15', 'twitter16']
+
+    for t_year in twitter_years:
+        t_dir = tree_dir(t_year)
+        t_tree_names = get_tree_names(t_year)
+        for t_event_txt in t_tree_names:
+            event_id = t_event_txt.split('.')[0]
+            for line in open(os.path.join(t_dir, t_event_txt), 'r'):
+                e = event_one_line(line, event_id)
+                writer.write_row(e.get_dict())
 
 
 if __name__ == '__main__':
-    pass
+    event_table()
