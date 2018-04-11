@@ -135,9 +135,9 @@ def merge_dicts(lst_of_dct):
     return new_dict
 
 
-if __name__ == '__main__':
-    my_api = TwitterAPIWrapper('./config.ini')
-    writer = WriterWrapper('contents_crawling')
+def story_table(config_name):
+    my_api = TwitterAPIWrapper(config_name)
+    writer = WriterWrapper('story_table')
 
     twitter_years = ['twittertest']
 
@@ -157,3 +157,7 @@ if __name__ == '__main__':
 
                 merged_dict = merge_dicts([content_dict, www, id_label])
                 writer.write_row(merged_dict)
+
+
+if __name__ == '__main__':
+    story_table('./config.ini')
