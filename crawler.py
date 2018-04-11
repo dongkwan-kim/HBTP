@@ -137,7 +137,9 @@ def merge_dicts(lst_of_dct):
 
 def story_table(config_name):
     my_api = TwitterAPIWrapper(config_name)
-    writer = WriterWrapper('story_table')
+
+    fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
+    writer = WriterWrapper('story_table', fieldnames)
 
     twitter_years = ['twittertest']
 
