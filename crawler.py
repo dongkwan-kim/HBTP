@@ -6,8 +6,7 @@ __author__ = 'Dongkwan Kim'
 import twitter
 import configparser
 from newspaper import Article
-import csv
-import datetime
+from WriterWrapper import WriterWrapper
 import time
 
 
@@ -129,25 +128,6 @@ def get_contents(url):
     return r
 
 
-class WriterWrapper:
-
-    def __init__(self, _filename='contents_crawling_{0}.csv', _fieldnames=None):
-        file_name = _filename.format(datetime.datetime.now())
-
-        if not _fieldnames:
-            _fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
-
-        self.f = open(file_name, 'w', encoding='utf-8')
-        self.wr = csv.DictWriter(self.f, fieldnames=_fieldnames)
-        self.wr.writeheader()
-
-    def write_row(self, dct):
-        self.wr.writerow(dct)
-
-    def close(self):
-        self.f.close()
-
-
 def merge_dicts(lst_of_dct):
     new_dict = {}
     for dct in lst_of_dct:
@@ -157,7 +137,7 @@ def merge_dicts(lst_of_dct):
 
 if __name__ == '__main__':
     my_api = TwitterAPIWrapper('./config.ini')
-    writer = WriterWrapper()
+    writer = WriterWrapper('contents_crawling')
 
     twitter_years = ['twittertest']
 
