@@ -6,10 +6,13 @@ Make ma2017detect-dataset complete w/ crawler and parser
 contents-crawler-ma2017detect
 ├── crawler.py
 ├── parser.py
+├── data
+│   ├── stopwords.txt
+│   └── README.md
 └── rumor_detection_acl2017
     ├── README.txt
     ├── twittertest (* My own directory for the test)
-    │   ├── label.txt
+    │   └── label.txt
     ├── twitter15
     │   ├── label.txt
     │   └── tree
