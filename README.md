@@ -7,6 +7,7 @@ contents-crawler-ma2017detect
 ├── crawler.py
 ├── parser.py
 ├── preprocess.py
+├── synch.py
 ├── data
 │   ├── stopwords.txt
 │   └── README.md

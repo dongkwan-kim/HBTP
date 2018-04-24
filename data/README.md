@@ -22,6 +22,5 @@
 - Delete multiple '\n' of contents.
 - Delete sentences which are exact stopwords.
 
-### ./event
-- No preprocessing is needed.
-
+### ./event/synchronized
+- Delete events whose stories are removed from preprocessing.
