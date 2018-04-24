@@ -14,8 +14,13 @@
 - Delete stories whose
     - link is other social media. (e.g. twitter, facebook)
     - main content is not text. (e.g. video, image, timeline)
-    - link is expired.
     - length is less than 400.
+    
+### ./story/preprocessed
+- Delete stories whose
+    - link is expired.
+- Delete multiple '\n' of contents.
+- Delete sentences which are exact stopwords.
 
 ### ./event
 - No preprocessing is needed.
