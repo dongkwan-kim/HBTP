@@ -5,6 +5,7 @@ __author__ = 'Dongkwan Kim'
 
 import os
 from WriterWrapper import WriterWrapper
+from collections import defaultdict
 
 
 def tree_dir(twitter_year):
@@ -24,6 +25,7 @@ def get_tree_names(twitter_year):
 class Event:
 
     event_id_counter = 0
+    event_list = defaultdict(list)
 
     def __init__(self, parent_id, user_id, story_id, time_stamp):
 
@@ -35,8 +37,17 @@ class Event:
         self.story_id = story_id
         self.time_stamp = time_stamp
 
+        t = (parent_id, user_id, time_stamp)
+        if t not in Event.event_list[story_id]:
+            Event.event_list[story_id].append(t)
+            self.is_unique = True
+        else:
+            self.is_unique = False
+
     def get_dict(self):
-        return self.__dict__
+        d = self.__dict__
+        del d['is_unique']
+        return d
 
 
 def event_one_line(line, story_id=None):
@@ -72,7 +83,8 @@ def event_table():
             event_id = t_event_txt.split('.')[0]
             for line in open(os.path.join(t_dir, t_event_txt), 'r'):
                 e = event_one_line(line, event_id)
-                writer.write_row(e.get_dict())
+                if e.is_unique:
+                    writer.write_row(e.get_dict())
 
 
 if __name__ == '__main__':
