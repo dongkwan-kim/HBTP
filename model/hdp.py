@@ -45,15 +45,9 @@ class HDP:
 
         self.p = self.getP(self.V)
         self.alpha = 5.
-        self.alpha_1 = 1  # prior for alpha
-        self.alpha_2 = 1e-3  # prior for alpha
         self.beta = 5.
-        self.beta_1 = 1
-        self.beta_2 = 1e-3
         self.dir_prior = 0.5
         self.mean = np.zeros(self.n_topic)
-        self.Kern = np.identity(self.n_topic)
-        self.invKern = np.linalg.inv(self.Kern)
         self.gamma = np.random.gamma(shape=1, scale=1, size=[self.n_voca, self.n_topic]) + self.dir_prior
         self.c_a_max_step = 5
         self.is_compute_lb = True
@@ -270,30 +264,11 @@ class HDP:
                     f.write(',' + word)
                 f.write('\n')
 
-    def write_corr_topics(self, corpus, filepath, thr=-1e100):
-        with open(filepath, 'w') as f:
-            Kern = self.Kern
-
-            for ti in range(self.n_topic - 1):
-                for ki in range(ti + 1, self.n_topic):
-                    if Kern[ti, ki] > thr:
-                        f.write(str(ti) + ',' + str(ki) + ',' + str(Kern[ti, ki]))
-                        top = corpus.vocab[self.gamma[:, ti].argsort()[::-1][:5]]
-                        for word in top:
-                            f.write(',' + word)
-                        top = corpus.vocab[self.gamma[:, ki].argsort()[::-1][:5]]
-                        f.write(',|')
-                        for word in top:
-                            f.write(',' + word)
-                        f.write('\n')
-
     def save_result(self, folder, corpus):
-        import os, cPickle
+        import os, pickle
         if not os.path.exists(folder):
             os.mkdir(folder)
-        np.savetxt(folder + '/final_mean.csv', self.mean, delimiter=',')
-        np.savetxt(folder + '/final_K.csv', self.Kern, delimiter=',')
         np.savetxt(folder + '/final_V.csv', self.V, delimiter=',')
         self.write_top_words(corpus, folder + '/final_top_words.csv')
         self.write_corr_topics(corpus, folder + '/final_corr_topics.csv')
-        cPickle.dump(self, open(folder + '/model.pkl', 'w'))
+        pickle.dump(self, open(folder + '/model.pkl', 'w'))
