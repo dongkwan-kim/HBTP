@@ -8,7 +8,7 @@ import csv
 from WriterWrapper import WriterWrapper
 
 
-DATA_PATH = './data'
+DATA_PATH = '../data'
 STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed')
 EVENT_PATH = os.path.join(DATA_PATH, 'event', 'raw')
 OUTPUT_PATH = os.path.join(DATA_PATH, 'event', 'synchronized')

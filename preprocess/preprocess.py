@@ -11,7 +11,7 @@ from WriterWrapper import WriterWrapper
 from urllib.parse import urlparse
 
 
-DATA_PATH = './data'
+DATA_PATH = '../data'
 STORY_PATH = os.path.join(DATA_PATH, 'story')
 INPUT_PATH = os.path.join(STORY_PATH, 'implicit-error-preprocessed')
 OUTPUT_PATH = os.path.join(STORY_PATH, 'preprocessed')

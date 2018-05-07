@@ -8,8 +8,11 @@ from WriterWrapper import WriterWrapper
 from collections import defaultdict
 
 
+OUTPUT_PATH = '../data/event/raw'
+
+
 def tree_dir(twitter_year):
-    return './rumor_detection_acl2017/{0}/tree/'.format(twitter_year)
+    return '../rumor_detection_acl2017/{0}/tree/'.format(twitter_year)
 
 
 def get_tree_names(twitter_year):
@@ -76,7 +79,7 @@ def event_table():
 
     fieldnames = ['event_id', 'parent_id', 'user_id', 'story_id', 'time_stamp']
     for t_year in twitter_years:
-        writer = WriterWrapper('event_table_{0}'.format(t_year), fieldnames)
+        writer = WriterWrapper(os.path.join(OUTPUT_PATH, 'event_table_{0}'.format(t_year)), fieldnames)
         t_dir = tree_dir(t_year)
         t_tree_names = get_tree_names(t_year)
         for t_event_txt in t_tree_names:
