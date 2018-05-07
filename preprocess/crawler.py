@@ -8,10 +8,14 @@ import configparser
 from newspaper import Article
 from WriterWrapper import WriterWrapper
 import time
+import os
+
+
+OUTPUT_PATH = '../data/story/raw'
 
 
 def label_path(twitter_year):
-    return './rumor_detection_acl2017/{0}/label.txt'.format(twitter_year)
+    return '../rumor_detection_acl2017/{0}/label.txt'.format(twitter_year)
 
 
 def get_id_label_list(path):
@@ -148,7 +152,7 @@ def story_table(config_name):
 
     # str
     for ty in twitter_years:
-        writer = WriterWrapper('story_table_{0}'.format(ty), fieldnames)
+        writer = WriterWrapper(os.path.join(OUTPUT_PATH, 'story_table_{0}'.format(ty)), fieldnames)
         id_label_list = get_id_label_list(label_path(ty))
 
         # {'tweet_id': str, 'label': str}
