@@ -7,8 +7,22 @@ import os
 import pprint
 
 
-STORY_PATH = '../data/story/preprocessed'
-STOP_WORDS = 'i, me, my, myself, we, our, ours, ourselves, you, your, yours, yourself, yourselves, he, him, his, himself, she, her, hers, herself, it, its, itself, they, them, their, theirs, themselves, what, which, who, whom, this, that, these, those, am, is, are, was, were, be, been, being, have, has, had, having, do, does, did, doing, a, an, the, and, but, if, or, because, as, until, while, of, at, by, for, with, about, against, between, into, through, during, before, after, above, below, to, from, up, down, in, out, on, off, over, under, again, further, then, once, here, there, when, where, why, how, all, any, both, each, few, more, most, other, some, such, no, nor, not, only, own, same, so, than, too, very, s, t, can, will, just, don, should, now'
+DATA_PATH = '../data'
+STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed')
+
+
+def get_stops():
+    """
+    :return: tuple of two lists: ([...], [...])
+    """
+    stop_words = open(os.path.join(DATA_PATH, 'stopwords.txt'), 'r', encoding='utf-8').readlines()
+    stop_sentences = open(os.path.join(DATA_PATH, 'stopsentences.txt'), 'r', encoding='utf-8').readlines()
+
+    # strip, lower and reversed sort by sentence's length
+    stop_sentences = sorted([ss.strip().lower() for ss in stop_sentences], key=lambda s: -len(s))
+    stop_words = [sw.strip().lower() for sw in stop_words]
+
+    return stop_words, stop_sentences
 
 
 def get_story_files():
@@ -23,6 +37,7 @@ class FormattedStory:
         self.delimiter = delimiter
         self.len_criteria = len_criteria if len_criteria else lambda l: l > 1
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
+        self.stop_words, self.stop_sentences = get_stops()
 
         self.word_ids = None
         self.word_cnt = None
@@ -31,6 +46,12 @@ class FormattedStory:
 
     def pprint(self):
         pprint.pprint(self.__dict__)
+
+    def remove_stop_sentences(self, content: str):
+        for ss in self.stop_sentences:
+            if ss in content:
+                content = content.replace(ss, '')
+        return content
 
     def get_formatted(self):
         stories = pd.read_csv(self.story_path)
@@ -46,10 +67,11 @@ class FormattedStory:
 
             content = row['title'] + '\n' + row['content']
             content = content.lower()
+            content = self.remove_stop_sentences(content)
 
             words = re.split(self.delimiter, content)
             words = [self.stemmer.stem(v) for v in words]
-            words = [v for v in words if v not in STOP_WORDS]
+            words = [v for v in words if v not in self.stop_words]
             words = [re.sub('[\W_]+', '', v) for v in words]
             words = [v for v in words if self.len_criteria(len(v))]
 

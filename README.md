@@ -10,6 +10,7 @@ HBTP
 │   │   ├── raw
 │   │   └── synchronized
 │   ├── stopwords.txt
+│   ├── stopsentences.txt
 │   └── story
 │       ├── explicit-error-preprocessed
 │       ├── implicit-error-preprocessed
