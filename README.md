@@ -1,26 +1,45 @@
-# complete-ma2017detect
-Make ma2017detect-dataset complete w/ crawler and parser
+# Homogeneity-Based Transmissive Process (HBTP)
 
 ## Directory Structure
 ```
-contents-crawler-ma2017detect
-├── crawler.py
-├── parser.py
-├── preprocess.py
-├── synch.py
+HBTP
+├── README.md
 ├── data
-│   ├── stopwords.txt
-│   └── README.md
-└── rumor_detection_acl2017
-    ├── README.txt
-    ├── twittertest (* My own directory for the test)
-    │   └── label.txt
-    ├── twitter15
-    │   ├── label.txt
-    │   └── tree
-    └── twitter16
-        ├── label.txt
-        └── tree
+│   ├── README.md
+│   ├── event
+│   │   ├── raw
+│   │   └── synchronized
+│   ├── stopwords.txt
+│   └── story
+│       ├── explicit-error-preprocessed
+│       ├── implicit-error-preprocessed
+│       ├── preprocessed
+│       └── raw
+├── model
+│   ├── diln.py
+│   ├── hbtp.py
+│   └── hdp.py
+├── preprocess
+│   ├── WriterWrapper.py
+│   ├── config.ini
+│   ├── crawler.py
+│   ├── format_event.py
+│   ├── format_story.py
+│   ├── parser.py
+│   ├── preprocess.py
+│   ├── stats.py
+│   └── synch.py
+├── requirements.txt
+└─── rumor_detection_acl2017
+    ├── README.txt
+    ├── twitter15
+    │   ├── label.txt
+    │   └── tree
+    ├── twitter16
+    │   ├── label.txt
+    │   └── tree
+    └── twittertest
+        └── label.txt
 ```
 
 ## References
