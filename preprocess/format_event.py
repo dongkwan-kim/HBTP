@@ -95,15 +95,6 @@ class FormattedEvent:
             if i % 1000 == 0 and __name__ == '__main__':
                 print(i)
 
-        user_to_id = dict((user, idx) for idx, user in enumerate(sorted(user_set)))
-        story_to_id = dict((story, idx) for idx, story in enumerate(sorted(story_set)))
-
-        # Indexify
-        parent_to_child = self.indexify(parent_to_child, user_to_id, user_to_id)
-        child_to_parent_and_story = self.indexify(child_to_parent_and_story, user_to_id, story_to_id, is_c2ps=True)
-        story_to_users = self.indexify(story_to_users, story_to_id, user_to_id)
-        user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
-
         # Construct a set of leaf users
         leaf_users = set()
         for parent, child in parent_to_child.items():
@@ -113,10 +104,20 @@ class FormattedEvent:
 
         # Remove leaf users
         parent_to_child_final = {k: [vv for vv in v if vv not in leaf_users] for k, v in parent_to_child.items()}
-        self.parent_to_child = {k: v for k, v in parent_to_child_final.items() if len(v) != 0}
-        self.user_to_stories = {k: v for k, v in user_to_stories.items() if k not in leaf_users}
-        self.child_to_parent_and_story = {k: v for k, v in child_to_parent_and_story.items() if k not in leaf_users}
-        self.story_to_users = {k: [vv for vv in v if vv not in leaf_users] for k, v in story_to_users.items()}
+        parent_to_child = {k: v for k, v in parent_to_child_final.items() if len(v) != 0}
+        user_to_stories = {k: v for k, v in user_to_stories.items() if k not in leaf_users}
+        child_to_parent_and_story = {k: v for k, v in child_to_parent_and_story.items() if k not in leaf_users}
+        story_to_users = {k: [vv for vv in v if vv not in leaf_users] for k, v in story_to_users.items()}
+        user_set = set(u for u in user_set if u not in leaf_users)
+
+        user_to_id = dict((user, idx) for idx, user in enumerate(sorted(user_set)))
+        story_to_id = dict((story, idx) for idx, story in enumerate(sorted(story_set)))
+
+        # Indexify
+        self.parent_to_child = self.indexify(parent_to_child, user_to_id, user_to_id)
+        self.child_to_parent_and_story = self.indexify(child_to_parent_and_story, user_to_id, story_to_id, is_c2ps=True)
+        self.story_to_users = self.indexify(story_to_users, story_to_id, user_to_id)
+        self.user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
 
 
 def get_formatted_events():
