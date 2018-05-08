@@ -143,7 +143,7 @@ class FormattedStory:
         return None
 
 
-def get_formatted_stories():
+def get_formatted_stories() -> list:
     r_list = []
     for story_path in get_story_files():
         fe = FormattedStory(story_path)

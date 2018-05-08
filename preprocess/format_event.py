@@ -13,12 +13,13 @@ def get_event_files():
 
 class FormattedEvent:
 
-    def __init__(self, event_path):
+    def __init__(self, event_path, force_save=False):
         self.event_path = event_path
         self.parent_to_child = None
         self.child_to_parent_and_story = None
         self.story_to_users = None
         self.user_to_stories = None
+        self.force_save = force_save
 
     def get_twitter_year(self):
         return self.event_path.split('_')[2]
@@ -66,7 +67,7 @@ class FormattedEvent:
 
     def get_formatted(self):
 
-        if self.load():
+        if self.load() and not self.force_save:
             return
 
         events = pd.read_csv(self.event_path)
@@ -120,7 +121,7 @@ class FormattedEvent:
         self.user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
 
 
-def get_formatted_events():
+def get_formatted_events() -> list:
     r_list = []
     for event_path in get_event_files():
         fe = FormattedEvent(event_path)
