@@ -97,11 +97,11 @@ class HBTP:
 
             if iter > 3:
                 self.lbs.append(lb)
-                if iter > 5:
-                    if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
-                        break
-                    if (self.lbs[-1] < self.lbs[-2]):
-                        break
+                # if iter > 5:
+                #     if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
+                #         break
+                #     if (self.lbs[-1] < self.lbs[-2]):
+                #         break
 
     def getStickLeft(self, V):
         stl = np.ones(self.n_topic)
@@ -188,11 +188,13 @@ class HBTP:
 
         p_user = Z_user / np.sum(Z_user, axis = 1)[:, np.newaxis]
         p_user = np.vstack((p_user, self.p))
-        bp = self.beta * p_user[corpus.edgerow_parent]
-        # bp = self.beta * self.p
+        H = np.ones(corpus.n_user + 1) * 100
+        H[-1] = 1.
+        bph = self.beta * p_user[corpus.edgerow_parent] * H[corpus.edgerow_parent][:, np.newaxis]
+        # bph = self.beta * self.p
 
         xi = np.sum(corpus.A / corpus.B, 1)  # m dim
-        corpus.A = bp + corpus.phi_doc[corpus.edgerow_story]
+        corpus.A = bph + corpus.phi_doc[corpus.edgerow_story]
         corpus.B = 1 + (corpus.Nm[corpus.edgerow_story] / xi)[:, np.newaxis]
         corpus.lnZ_edge = psi(corpus.A) - np.log(corpus.B)
         corpus.Z_edge = corpus.A / corpus.B
@@ -200,8 +202,8 @@ class HBTP:
         if (self.is_compute_lb):
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum((bp - 1) * (E_ln_Z)) / corpus.n_edge - np.sum(
-                corpus.A / corpus.B) - np.sum(gammaln(bp))
+            l1 = np.sum((bph - 1) * (E_ln_Z)) / corpus.n_edge - np.sum(
+                corpus.A / corpus.B) - np.sum(gammaln(bph))
             lb += l1
             # entropy of q(Z)
             l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * (E_ln_Z)) - np.sum(corpus.A) - np.sum(
