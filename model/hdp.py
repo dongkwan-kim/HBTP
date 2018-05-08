@@ -1,24 +1,16 @@
 import numpy as np
 import time
 from scipy.special import gammaln, psi
+from corpus import BaseCorpus
 
 eps = 1e-100
 
 
-class Corpus:
-    def __init__(self, vocab, word_ids, word_cnt, n_topic):
-        self.vocab = np.array(vocab)
-        self.word_ids = word_ids
-        self.word_cnt = word_cnt
-        self.n_topic = n_topic  # num topics
-        self.n_voca = len(vocab)
-        self.M = len(word_ids)
-        self.A = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
-        self.B = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
+class Corpus(BaseCorpus):
 
-        self.Nm = np.zeros(self.M)
-        for i in range(self.M):
-            self.Nm[i] = np.sum(word_cnt[i])
+    def __init__(self, vocab, word_ids, word_cnt, n_topic):
+        super().__init__(vocab, word_ids, word_cnt, n_topic)
+
 
 class HDP:
     """

@@ -1,43 +1,46 @@
 import numpy as np
 import time
 from scipy.special import gammaln, psi
+from corpus import BaseCorpus
+from collections import defaultdict
+
 
 eps = 1e-100
 
 
-class Corpus:
+class Corpus(BaseCorpus):
+
     def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic):
-        self.vocab = np.array(vocab)
-        self.word_ids = word_ids
-        self.word_cnt = word_cnt
-        self.n_topic = n_topic  # num topics
-        self.n_voca = len(vocab)
-        self.M = len(word_ids)
-        self.n_user = len(child_to_parent_and_story)
+        super().__init__(vocab, word_ids, word_cnt, n_topic)
 
         self.story_to_users = story_to_users
 
+        self.n_user = len(child_to_parent_and_story)
         self.n_edge = sum([len(edges) for edges in child_to_parent_and_story.values()])
-        self.user_edgerows = dict()
-        self.edgerow_story = list()
-        cnt = 0
-        for child, parents in child_to_parent_and_story.items():
-            for parent in parents:
-                if child not in self.user_edgerows:
-                    self.user_edgerows[child] = list()
-                self.user_edgerows[child].append(cnt)
-                self.edgerow_story.append(parent[1])
-                cnt += 1
-        self.edgerow_story = np.array(self.edgerow_story)
 
+        # Note that the size of A and B is [self.n_edge, self.n_topic], not [self.M, self.n_topic]
         self.A = np.random.gamma(shape=1, scale=1, size=[self.n_edge, self.n_topic])
         self.B = np.random.gamma(shape=1, scale=1, size=[self.n_edge, self.n_topic])
         self.lnZ_edge = psi(self.A) - np.log(self.B)
         self.Z_edge = self.A / self.B
 
-        self.Nm = np.zeros(self.M)
-        for i in range(self.M):
-            self.Nm[i] = np.sum(word_cnt[i])
+        user_edgerows = defaultdict(list)
+        edgerow_story = list()
+        cnt = 0
+
+        # (child:int, [(parent:int, story:int), ...])
+        for child, parent_and_story in child_to_parent_and_story.items():
+            for parent, story in parent_and_story:
+                user_edgerows[child].append(cnt)
+                edgerow_story.append(story)
+                cnt += 1
+
+        # np.array(list of int)
+        self.edgerow_story = np.array(edgerow_story)
+
+        # {user:int -> edgerows:int}
+        self.user_edgerows = dict(user_edgerows)
+
 
 class HBTP:
     """
