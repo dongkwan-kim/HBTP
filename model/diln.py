@@ -195,10 +195,10 @@ class DILN:
                 self.invKern) + .5 / corpus.sigma[m, :]
             stepsize = self.getstepMUV(corpus.mu[m, :], corpus.sigma[m, :], gradMU, gradV, bp, adivb[m, :], self.mean,
                                        self.invKern)
-            corpus.mu[m, :] += stepsize * gradMU;
+            corpus.mu[m, :] += stepsize * gradMU
             gradV *= stepsize
             gradV[gradV > 200] = 200
-            corpus.sigma[m, :] += gradV;
+            corpus.sigma[m, :] += gradV
 
         self.mean = np.mean(corpus.mu, 0)
         self.Kern = (np.dot((corpus.mu - self.mean).T, corpus.mu - self.mean) + np.diag(
@@ -237,19 +237,19 @@ class DILN:
 
             psiV = psi(self.beta * p)
 
-            vVec = - self.beta * stickLeft * sumMu + self.beta * stickLeft * sumLnZ - corpus.M * self.beta * stickLeft * psiV;
+            vVec = - self.beta * stickLeft * sumMu + self.beta * stickLeft * sumLnZ - corpus.M * self.beta * stickLeft * psiV
 
             for k in range(self.n_topic):
-                tmp1 = self.beta * sum(sumMu[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp3 = corpus.M * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
-                vVec[k] = vVec[k] + tmp1 - tmp2;
-                vVec[k] = vVec[k] + tmp3;
+                tmp1 = self.beta * sum(sumMu[k + 1:] * p[k + 1:] / one_V[k])
+                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k])
+                tmp3 = corpus.M * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k])
+                vVec[k] = vVec[k] + tmp1 - tmp2
+                vVec[k] = vVec[k] + tmp3
                 vVec[k] = vVec[k]
-            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2];
-            vVec[self.n_topic - 1] = 0;
-            step_stick = self.getstepSTICK(self.V, vVec, sumMu, sumLnZ, self.beta, self.alpha, corpus.M);
-            self.V = self.V + step_stick * vVec;
+            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2]
+            vVec[self.n_topic - 1] = 0
+            step_stick = self.getstepSTICK(self.V, vVec, sumMu, sumLnZ, self.beta, self.alpha, corpus.M)
+            self.V = self.V + step_stick * vVec
             self.p = self.getP(self.V)
 
         if self.is_compute_lb:
@@ -283,17 +283,17 @@ class DILN:
             min_zero = min(step_zero[step_zero > 0])
         if (np.sum(step_one > 0) > 0):
             min_one = min(step_one[step_one > 0])
-        max_step = min([min_zero, min_one]);
+        max_step = min([min_zero, min_one])
 
         if max_step > 0:
-            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step;
+            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step
         else:
-            step_check_vec = list();
+            step_check_vec = list()
 
-        f = np.zeros(len(step_check_vec));
+        f = np.zeros(len(step_check_vec))
         for ite in range(len(step_check_vec)):
-            step_check = step_check_vec[ite];
-            vec_check = curr + step_check * grad;
+            step_check = step_check_vec[ite]
+            vec_check = curr + step_check * grad
             p = self.getP(vec_check)
             f[ite] = -np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ)\
                      + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
@@ -302,15 +302,15 @@ class DILN:
             b = f.argsort()[-1]
             step = step_check_vec[b]
         else:
-            step = 0;
+            step = 0
 
         if b == 1:
-            rho = .5;
-            bool = 1;
-            fold = f[b];
+            rho = .5
+            bool = 1
+            fold = f[b]
             while bool:
-                step = rho * step;
-                vec_check = curr + step * grad;
+                step = rho * step
+                vec_check = curr + step * grad
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
@@ -330,7 +330,7 @@ class DILN:
         isbound = np.sum(steps > 0) > 0
         maxstep2 = 0
         if np.sum(steps[steps > 0]) > 0:
-            maxstep2 = np.min(steps[steps > 0]);
+            maxstep2 = np.min(steps[steps > 0])
         if np.sum(steps >= 0) > 0:
             maxstep = min(steps[steps > 0])
             maxstep = min([maxstep, 1])
@@ -338,15 +338,15 @@ class DILN:
             maxstep = 1
 
         if maxstep > 0:
-            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * maxstep;
+            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * maxstep
         else:
-            step_check_vec = list();
+            step_check_vec = list()
 
-        f = np.zeros(len(step_check_vec));
+        f = np.zeros(len(step_check_vec))
         for ite in range(len(step_check_vec)):
             step_check = step_check_vec[ite]
-            mu_check = currMu + step_check * vecMu;
-            v_check = currV + step_check * vecV;
+            mu_check = currMu + step_check * vecMu
+            v_check = currV + step_check * vecV
             v_check[v_check > 200] = 200
 
             f[ite] = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
@@ -354,23 +354,23 @@ class DILN:
                 np.log(v_check + eps))
 
         if len(f) != 0:
-            b = f.argsort()[-1];
-            stepsize = step_check_vec[b];
+            b = f.argsort()[-1]
+            stepsize = step_check_vec[b]
         else:
             stepsize = 0
 
         if b == len(step_check_vec):
             rho = 1.5
             bool = 1
-            fold = f(b);
+            fold = f(b)
             while bool:
                 stepsize = rho * stepsize
                 if isbound:
                     if stepsize > maxstep2:
-                        bool = 0;
+                        bool = 0
                         break
                 mu_check = currMu + stepsize * vecMu
-                v_check = currV + stepsize * vecV;
+                v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
                 fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
                     (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),
@@ -383,13 +383,13 @@ class DILN:
             stepsize = stepsize / rho
 
         if b == 1:
-            rho = .5;
-            bool = 1;
-            fold = f[b];
+            rho = .5
+            bool = 1
+            fold = f[b]
             while bool:
-                stepsize = rho * stepsize;
-                mu_check = currMu + stepsize * vecMu;
-                v_check = currV + stepsize * vecV;
+                stepsize = rho * stepsize
+                mu_check = currMu + stepsize * vecMu
+                v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
                 fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
                     (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),

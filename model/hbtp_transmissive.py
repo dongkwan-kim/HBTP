@@ -229,18 +229,18 @@ class HBTP:
 
             psiV = psi(self.beta * p)
 
-            vVec = self.beta * stickLeft * sumLnZ - corpus.n_edge * self.beta * stickLeft * psiV;
+            vVec = self.beta * stickLeft * sumLnZ - corpus.n_edge * self.beta * stickLeft * psiV
 
             for k in range(self.n_topic):
-                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp3 = n_edges_with_root_parents * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
-                vVec[k] = vVec[k] - tmp2;
-                vVec[k] = vVec[k] + tmp3;
+                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k])
+                tmp3 = n_edges_with_root_parents * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k])
+                vVec[k] = vVec[k] - tmp2
+                vVec[k] = vVec[k] + tmp3
                 vVec[k] = vVec[k]
-            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2];
-            vVec[self.n_topic - 1] = 0;
-            step_stick = self.getstepSTICK(self.V, vVec, sumLnZ, self.beta, self.alpha, n_edges_with_root_parents);
-            self.V = self.V + step_stick * vVec;
+            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2]
+            vVec[self.n_topic - 1] = 0
+            step_stick = self.getstepSTICK(self.V, vVec, sumLnZ, self.beta, self.alpha, n_edges_with_root_parents)
+            self.V = self.V + step_stick * vVec
             self.p = self.getP(self.V)
 
         if self.is_compute_lb:
@@ -267,17 +267,17 @@ class HBTP:
             min_zero = min(step_zero[step_zero > 0])
         if (np.sum(step_one > 0) > 0):
             min_one = min(step_one[step_one > 0])
-        max_step = min([min_zero, min_one]);
+        max_step = min([min_zero, min_one])
 
         if max_step > 0:
-            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step;
+            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step
         else:
-            step_check_vec = list();
+            step_check_vec = list()
 
-        f = np.zeros(len(step_check_vec));
+        f = np.zeros(len(step_check_vec))
         for ite in range(len(step_check_vec)):
-            step_check = step_check_vec[ite];
-            vec_check = curr + step_check * grad;
+            step_check = step_check_vec[ite]
+            vec_check = curr + step_check * grad
             p = self.getP(vec_check)
             f[ite] =  - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ)\
                      + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
@@ -286,15 +286,15 @@ class HBTP:
             b = f.argsort()[-1]
             step = step_check_vec[b]
         else:
-            step = 0;
+            step = 0
 
         if b == 1:
-            rho = .5;
-            bool = 1;
-            fold = f[b];
+            rho = .5
+            bool = 1
+            fold = f[b]
             while bool:
-                step = rho * step;
-                vec_check = curr + step * grad;
+                step = rho * step
+                vec_check = curr + step * grad
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
