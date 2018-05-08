@@ -105,3 +105,5 @@ rumor_detection_acl2017/
 *.ini
 .idea/
 *.csv
+*.numbers
+*.pkl
