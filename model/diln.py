@@ -2,6 +2,8 @@ import numpy as np
 import time
 from scipy.special import gammaln, psi
 from corpus import BaseCorpus
+from model import BaseModel
+
 
 eps = 1e-100
 
@@ -14,7 +16,7 @@ class Corpus(BaseCorpus):
         self.sigma = np.ones([self.M, self.n_topic])
 
 
-class DILN:
+class DILN(BaseModel):
     """
     The Discrete Infinite Logistic Normal Distribution (DILN),
     Paisley, John and Wang, Chong and Blei, David, 2011
@@ -26,32 +28,17 @@ class DILN:
         vocabulary size
     """
 
-    def __init__(self, n_topic, n_voca):
-        self.n_topic = n_topic
-        self.n_voca = n_voca  # vocabulary size
-        self.V = np.zeros(self.n_topic)
+    def __init__(self, n_topic, n_voca, alpha=5., beta=5., dir_prior=0.5,
+                 alpha_1=1, alpha_2=1e-3, beta_1=1, beta_2=1e-3):
+        super().__init__(n_topic, n_voca, alpha, beta, dir_prior)
 
-        # for even p
-        self.V[0] = 1. / self.n_topic
-        for k in range(1, n_topic - 1):
-            self.V[k] = (1. / self.n_topic) / np.prod(1. - self.V[:k])
-        self.V[self.n_topic - 1] = 1.
-
-        self.p = self.getP(self.V)
-        self.alpha = 5.
-        self.alpha_1 = 1  # prior for alpha
-        self.alpha_2 = 1e-3  # prior for alpha
-        self.beta = 5.
-        self.beta_1 = 1
-        self.beta_2 = 1e-3
-        self.dir_prior = 0.5
-        self.mean = np.zeros(self.n_topic)
+        # Hyper-parameters
+        self.alpha_1 = alpha_1
+        self.alpha_2 = alpha_2
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
         self.Kern = np.identity(self.n_topic)
         self.invKern = np.linalg.inv(self.Kern)
-        self.gamma = np.random.gamma(shape=1, scale=1, size=[self.n_voca, self.n_topic]) + self.dir_prior
-        self.c_a_max_step = 5
-        self.is_compute_lb = True
-        self.lbs = []
 
     def fit(self, corpus, max_iter=100):
         """ Run variational EM to fit the model
@@ -88,17 +75,6 @@ class DILN:
         self.mean = np.mean(corpus.mu, 0)
         self.Kern = (np.dot((corpus.mu - self.mean).T, (corpus.mu - self.mean)) + np.diag(
             np.sum(corpus.sigma, 0))) / corpus.M
-
-    def getStickLeft(self, V):
-        stl = np.ones(self.n_topic)
-        stl[1:] = np.cumprod(1. - V)[:-1]
-        return stl
-
-    def getP(self, V):
-        one_v = np.ones(self.n_topic)
-        one_v[1:] = (1. - V)[:-1]
-        p = V * np.cumprod(one_v)
-        return p
 
     # update per word v.d. phi
     def update_C(self, corpus, is_heldout):
@@ -403,41 +379,3 @@ class DILN:
 
         return stepsize
 
-    def write_top_words(self, corpus, filepath):
-        with open(filepath, 'w') as f:
-            for ti in range(corpus.K):
-                top_words = corpus.vocab[self.gamma[:, ti].argsort()[::-1][:20]]
-                f.write('%d,%f' % (ti, self.p[ti]))
-                for word in top_words:
-                    f.write(',' + word)
-                f.write('\n')
-
-    def write_corr_topics(self, corpus, filepath, thr=-1e100):
-        with open(filepath, 'w') as f:
-            Kern = self.Kern
-
-            for ti in range(self.n_topic - 1):
-                for ki in range(ti + 1, self.n_topic):
-                    if Kern[ti, ki] > thr:
-                        f.write(str(ti) + ',' + str(ki) + ',' + str(Kern[ti, ki]))
-                        top = corpus.vocab[self.gamma[:, ti].argsort()[::-1][:5]]
-                        for word in top:
-                            f.write(',' + word)
-                        top = corpus.vocab[self.gamma[:, ki].argsort()[::-1][:5]]
-                        f.write(',|')
-                        for word in top:
-                            f.write(',' + word)
-                        f.write('\n')
-
-    def save_result(self, folder, corpus):
-        import os, cPickle
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        np.savetxt(folder + '/final_mu.csv', corpus.mu, delimiter=',')
-        np.savetxt(folder + '/final_sigma.csv', corpus.sigma, delimiter=',')
-        np.savetxt(folder + '/final_mean.csv', self.mean, delimiter=',')
-        np.savetxt(folder + '/final_K.csv', self.Kern, delimiter=',')
-        np.savetxt(folder + '/final_V.csv', self.V, delimiter=',')
-        self.write_top_words(corpus, folder + '/final_top_words.csv')
-        self.write_corr_topics(corpus, folder + '/final_corr_topics.csv')
-        cPickle.dump(self, open(folder + '/model.pkl', 'w'))
