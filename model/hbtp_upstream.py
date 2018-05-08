@@ -130,7 +130,7 @@ class HBTP:
 
         for i in range(corpus.M):
             lnZ[i] =  np.mean(lnZ_user[corpus.story_to_users[i]], axis = 0)
-            Z[i] =  np.mean(Z_user[corpus.user_edgerows[i]], axis = 0)
+            Z[i] =  np.mean(Z_user[corpus.story_to_users[i]], axis = 0)
 
         lb = 0
         if (self.is_compute_lb):
@@ -214,13 +214,14 @@ class HBTP:
 
             for k in range(self.n_topic):
                 tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp3 = corpus.M * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
+                tmp3 = len(corpus.lnZ_edge) * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
                 vVec[k] = vVec[k] - tmp2;
                 vVec[k] = vVec[k] + tmp3;
                 vVec[k] = vVec[k]
             vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2];
             vVec[self.n_topic - 1] = 0;
             step_stick = self.getstepSTICK(self.V, vVec, sumLnZ, self.beta, self.alpha, corpus.n_edge);
+            print(step_stick)
             self.V = self.V + step_stick * vVec;
             self.p = self.getP(self.V)
 
