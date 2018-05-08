@@ -69,7 +69,7 @@ class HDP:
                 if iter > 5:
                     if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
                         break
-                    if (self.lbs[-1] < self.lbs[-2]):
+                    if self.lbs[-1] < self.lbs[-2]:
                         break
 
     def getStickLeft(self, V):
@@ -94,9 +94,10 @@ class HDP:
         Z = corpus.A / corpus.B
 
         lb = 0
-        if (self.is_compute_lb):
+        if self.is_compute_lb:
             # expectation of p(eta) over variational q(eta)
-            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) - self.n_topic * self.n_voca * gammaln(self.dir_prior) - np.sum(
+            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) - self.n_topic * self.n_voca * gammaln(
+                self.dir_prior) - np.sum(
                 (self.dir_prior - 1) * (psiGamma - psiGammaSum))
             lb += l1
             # entropy of q(eta)
@@ -120,7 +121,7 @@ class HDP:
                 self.gamma[ids, :] += cnt[:, np.newaxis] * C
             corpus.phi_doc[m, :] = np.sum(cnt[:, np.newaxis] * C, 0)
 
-            if (self.is_compute_lb):
+            if self.is_compute_lb:
                 # expectation of p(X) over variational q
                 lb += np.sum(cnt[:, np.newaxis] * C * E_ln_eta)
                 # expectation of p(C) over variational q
@@ -143,7 +144,7 @@ class HDP:
         corpus.A = bp + corpus.phi_doc
         corpus.B = 1 + (corpus.Nm / xi)[:, np.newaxis]
 
-        if (self.is_compute_lb):
+        if self.is_compute_lb:
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
             l1 = np.sum((bp - 1) * (E_ln_Z)) - np.sum(
@@ -203,9 +204,9 @@ class HDP:
         step_one = (1 - _curr) / _grad
         min_zero = 1
         min_one = 1
-        if (np.sum(step_zero > 0) > 0):
+        if np.sum(step_zero > 0) > 0:
             min_zero = min(step_zero[step_zero > 0])
-        if (np.sum(step_one > 0) > 0):
+        if np.sum(step_one > 0) > 0:
             min_one = min(step_one[step_one > 0])
         max_step = min([min_zero, min_one])
 
@@ -219,7 +220,7 @@ class HDP:
             step_check = step_check_vec[ite]
             vec_check = curr + step_check * grad
             p = self.getP(vec_check)
-            f[ite] =  - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ)\
+            f[ite] = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
                      + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
 
         if len(f) != 0:
@@ -238,7 +239,7 @@ class HDP:
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
-                fnew =  - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
+                fnew = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
                        + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
                 if fnew > fold:
                     fold = fnew
