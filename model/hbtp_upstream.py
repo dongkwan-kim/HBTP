@@ -69,21 +69,21 @@ class HBTP(BaseModel):
         -------
         """
 
-        for iter in range(max_iter):
+        for iteration in range(max_iter):
             lb = 0
             curr = time.clock()
             lb += self.update_C(corpus, False)
             lb += self.update_Z(corpus)
             lb += self.update_V(corpus)
-            print('%d iter, %.2f time, %.2f lower_bound' % (iter, time.clock() - curr, lb))
+            print('%d iter, %.2f time, %.2f lower_bound' % (iteration, time.clock() - curr, lb))
 
-            if iter > 3:
+            if iteration > 3:
                 self.lbs.append(lb)
-                if iter > 5:
-                    if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
-                        break
-                    if self.lbs[-1] < self.lbs[-2]:
-                        break
+            if iteration > 5:
+                if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
+                    break
+                if self.lbs[-1] < self.lbs[-2]:
+                    break
 
     # update per word v.d. phi
     def update_C(self, corpus, is_heldout):
@@ -110,17 +110,18 @@ class HBTP(BaseModel):
         lb = 0
         if self.is_compute_lb:
             # expectation of p(eta) over variational q(eta)
-            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) - self.n_topic * self.n_voca * gammaln(
-                self.dir_prior) - np.sum(
-                (self.dir_prior - 1) * (psiGamma - psiGammaSum))
+            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) \
+                 - self.n_topic * self.n_voca * gammaln(self.dir_prior) \
+                 - np.sum((self.dir_prior - 1) * (psiGamma - psiGammaSum))
             lb += l1
             # entropy of q(eta)
-            l2 = np.sum(gammaln(gammaSum)) - np.sum(gammaln(self.gamma)) + np.sum(
-                (self.gamma - 1) * (psiGamma - psiGammaSum))
+            l2 = np.sum(gammaln(gammaSum)) - np.sum(gammaln(self.gamma)) \
+                 + np.sum((self.gamma - 1) * (psiGamma - psiGammaSum))
             lb -= l2
 
         if not is_heldout:
-            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior  # multinomial topic distribution prior
+            # multinomial topic distribution prior
+            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior
 
         for m in range(corpus.M):
             ids = corpus.word_ids[m]
@@ -146,7 +147,6 @@ class HBTP(BaseModel):
                 lb -= l2
 
         # print ' E[p(eta,C,X)]-E[q(eta,C)] = %f' % lb
-
         return lb
 
     # update variational gamma prior a and b for Z_mk
@@ -247,9 +247,9 @@ class HBTP(BaseModel):
 
         if b == 1:
             rho = .5
-            bool = 1
+            keep_cont = True
             fold = f[b]
-            while bool:
+            while keep_cont:
                 step = rho * step
                 vec_check = curr + step * grad
                 tmp = np.zeros(vec_check.size)
@@ -260,6 +260,6 @@ class HBTP(BaseModel):
                 if fnew > fold:
                     fold = fnew
                 else:
-                    bool = 0
+                    keep_cont = False
             step = step / rho
         return step
