@@ -15,28 +15,35 @@ def get_formatted():
     return formatted_events, formatted_stories
 
 
-def get_corpus(f_events: FormattedEvent, f_stories: FormattedStory):
-    return hbtp_upstream.Corpus(
-        vocab=[f_stories.id_to_word[i] for i in range(len(f_stories.id_to_word))],
-        word_ids=f_stories.word_ids,
-        word_cnt=f_stories.word_cnt,
-        child_to_parent_and_story=f_events.child_to_parent_and_story,
-        story_to_users=f_events.story_to_users,
-        n_topic=100,
-    )
+def get_corpus(corpus_cls, f_events: FormattedEvent, f_stories: FormattedStory):
+    try:
+        return corpus_cls(
+            vocab=[f_stories.id_to_word[i] for i in range(len(f_stories.id_to_word))],
+            word_ids=f_stories.word_ids,
+            word_cnt=f_stories.word_cnt,
+            child_to_parent_and_story=f_events.child_to_parent_and_story,
+            story_to_users=f_events.story_to_users,
+            n_topic=100,
+        )
+    except:
+        return corpus_cls(
+            vocab=[f_stories.id_to_word[i] for i in range(len(f_stories.id_to_word))],
+            word_ids=f_stories.word_ids,
+            word_cnt=f_stories.word_cnt,
+            n_topic=100,
+        )
 
 
-def run_hbtp_upsream(corpus: hbtp_upstream.Corpus):
-    hbtp = hbtp_upstream.HBTP(
-        n_topic=100,
-        n_voca=len(corpus.vocab),
+def run_model(model_cls, corpus, n_topic=100):
+    model = model_cls(
+        n_topic=n_topic,
+        n_voca=corpus.n_voca,
     )
-    hbtp.fit(corpus)
-    return hbtp
+    model.fit(corpus)
+    return model
 
 
 if __name__ == '__main__':
     events, stories = get_formatted()
     for e, s in zip(events, stories):
-        run_hbtp_upsream(get_corpus(e, s))
-        break
+        run_model(hbtp_upstream.HBTP, get_corpus(hbtp_upstream.Corpus, e, s))
