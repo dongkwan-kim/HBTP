@@ -191,7 +191,7 @@ class HBTP:
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
             l1 = np.sum((bp - 1) * (E_ln_Z)) - np.sum(
-                corpus.A / corpus.B) - corpus.M * np.sum(gammaln(bp))
+                corpus.A / corpus.B) - corpus.n_edge * np.sum(gammaln(bp))
             lb += l1
             # entropy of q(Z)
             l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * (E_ln_Z)) - np.sum(corpus.A) - np.sum(
@@ -217,14 +217,13 @@ class HBTP:
 
             for k in range(self.n_topic):
                 tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp3 = len(corpus.lnZ_edge) * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
+                tmp3 = corpus.n_edge * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
                 vVec[k] = vVec[k] - tmp2;
                 vVec[k] = vVec[k] + tmp3;
                 vVec[k] = vVec[k]
             vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2];
             vVec[self.n_topic - 1] = 0;
             step_stick = self.getstepSTICK(self.V, vVec, sumLnZ, self.beta, self.alpha, corpus.n_edge);
-            print(step_stick)
             self.V = self.V + step_stick * vVec;
             self.p = self.getP(self.V)
 
