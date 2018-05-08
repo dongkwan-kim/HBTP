@@ -60,6 +60,8 @@ class FormattedStory:
     def dump(self):
         file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
         with open(os.path.join(STORY_PATH, file_name), 'wb') as f:
+            self.len_criteria = None
+            self.wf_criteria = None
             pickle.dump(self, f)
         print('Dumped: {0}'.format(file_name))
 
