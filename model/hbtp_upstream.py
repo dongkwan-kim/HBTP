@@ -6,42 +6,43 @@ eps = 1e-100
 
 
 class Corpus:
-    def __init__(self, vocab, word_ids, word_cnt, child_parent, story_contributors, n_topic):
+    def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic):
         self.vocab = np.array(vocab)
         self.word_ids = word_ids
         self.word_cnt = word_cnt
         self.n_topic = n_topic  # num topics
         self.n_voca = len(vocab)
         self.M = len(word_ids)
-        self.n_user = len(child_parent)
+        self.n_user = len(child_to_parent_and_story)
 
-        self.child_parent = child_parent
-        self.story_contributors = story_contributors
+        self.story_to_users = story_to_users
 
-        self.n_edge = sum([len(edges) for edges in child_parent.items()])
+        self.n_edge = sum([len(edges) for edges in child_to_parent_and_story.values()])
         self.user_edgerows = dict()
         self.edgerow_story = list()
         cnt = 0
-        for child, parents in child_parent.items():
+        for child, parents in child_to_parent_and_story.items():
             for parent in parents:
-                if user not in self.user_edgerows:
-                    self.user_edgerows[user] = list()
-                self.user_edgerows[user].append(cnt)
+                if child not in self.user_edgerows:
+                    self.user_edgerows[child] = list()
+                self.user_edgerows[child].append(cnt)
                 self.edgerow_story.append(parent[1])
                 cnt += 1
         self.edgerow_story = np.array(self.edgerow_story)
 
         self.A = np.random.gamma(shape=1, scale=1, size=[self.n_edge, self.n_topic])
         self.B = np.random.gamma(shape=1, scale=1, size=[self.n_edge, self.n_topic])
+        self.lnZ_edge = psi(self.A) - np.log(self.B)
+        self.Z_edge = self.A / self.B
 
         self.Nm = np.zeros(self.M)
         for i in range(self.M):
             self.Nm[i] = np.sum(word_cnt[i])
 
-class HDP:
+class HBTP:
     """
-    The Hierarchical Dirichlet Process (HDP)
-    Yee Whye Teh, Michael I. Jordan, Matthew J. Beal and David Blei, 2006
+    Homogeneity-Based Transmissive Process (HBTP)
+    Jooyeon Kim, Dongkwan Kim, Alice Oh, 2018
     Attributes
     ----------
     n_topic: int
@@ -116,21 +117,19 @@ class HDP:
         psiGamma = psi(self.gamma)
         gammaSum = np.sum(self.gamma, 0)
         psiGammaSum = psi(np.sum(self.gamma, 0))
-        lnZ_edge = psi(corpus.A) - np.log(corpus.B)
-        Z_edge = corpus.A / corpus.B
 
-        lnZ_user = np.zeros(corpus.n_user, corpus.n_topic)
-        Z_user = np.zeros(corpus.n_user, corpus.n_topic)
+        lnZ_user = np.zeros([corpus.n_user, corpus.n_topic])
+        Z_user = np.zeros([corpus.n_user, corpus.n_topic])
 
-        for i in range(self.n_user):
-            lnZ_user[i] =  np.mean(lnZ_edge[corpus.user_edgerows[i]], axis = 0)
-            Z_user[i] =  np.mean(Z_edge[corpus.user_edgerows[i]], axis = 0)
+        for i in range(corpus.n_user):
+            lnZ_user[i] =  np.mean(corpus.lnZ_edge[corpus.user_edgerows[i]], axis = 0)
+            Z_user[i] =  np.mean(corpus.Z_edge[corpus.user_edgerows[i]], axis = 0)
 
-        lnZ = np.zeros(corpus.M, corpus.n_topic)
-        Z = np.zeros(corpus.M, corpus.n_topic)
+        lnZ = np.zeros([corpus.M, corpus.n_topic])
+        Z = np.zeros([corpus.M, corpus.n_topic])
 
-        for i in range(self.M):
-            lnZ[i] =  np.mean(lnZ_user[corpus.story_contributors[i]], axis = 0)
+        for i in range(corpus.M):
+            lnZ[i] =  np.mean(lnZ_user[corpus.story_to_users[i]], axis = 0)
             Z[i] =  np.mean(Z_user[corpus.user_edgerows[i]], axis = 0)
 
         lb = 0
@@ -180,8 +179,10 @@ class HDP:
         bp = self.beta * self.p
 
         xi = np.sum(corpus.A / corpus.B, 1)  # m dim
-        corpus.A = bp + corpus.phi_doc[self.edgerow_story]
-        corpus.B = 1 + (corpus.Nm[self.edgerow_story] / xi)[:, np.newaxis]
+        corpus.A = bp + corpus.phi_doc[corpus.edgerow_story]
+        corpus.B = 1 + (corpus.Nm[corpus.edgerow_story] / xi)[:, np.newaxis]
+        corpus.lnZ_edge = psi(corpus.A) - np.log(corpus.B)
+        corpus.Z_edge = corpus.A / corpus.B
 
         if (self.is_compute_lb):
             # expectation of p(Z)
@@ -201,9 +202,9 @@ class HDP:
     def update_V(self, corpus):
         lb = 0
 
+        sumLnZ = np.sum(corpus.lnZ_edge, 0) # K dim
         for i in range(self.c_a_max_step):
             one_V = 1 - self.V
-            sumLnZ = np.sum(psi(corpus.A) - np.log(corpus.B), 0)  # K dim
             stickLeft = self.getStickLeft(self.V)  # prod(1-V_(dim-1))
             p = self.V * stickLeft
 
