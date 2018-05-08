@@ -5,6 +5,7 @@ import re
 from collections import Counter
 import os
 import pprint
+import pickle
 
 
 DATA_PATH = '../data'
@@ -44,6 +45,9 @@ class FormattedStory:
         self.word_to_id = None
         self.id_to_word = None
 
+    def get_twitter_year(self):
+        return self.story_path.split('_')[2]
+
     def pprint(self):
         pprint.pprint(self.__dict__)
 
@@ -53,7 +57,32 @@ class FormattedStory:
                 content = content.replace(ss, '')
         return content
 
+    def dump(self):
+        file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
+        with open(os.path.join(STORY_PATH, file_name), 'wb') as f:
+            pickle.dump(self, f)
+        print('Dumped: {0}'.format(file_name))
+
+    def load(self):
+        file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
+        try:
+            with open(os.path.join(STORY_PATH, file_name), 'rb') as f:
+                loaded = pickle.load(f)
+                self.word_ids = loaded.word_ids
+                self.word_cnt = loaded.word_cnt
+                self.word_to_id = loaded.word_to_id
+                self.id_to_word = loaded.id_to_word
+            print('Loaded: {0}'.format(file_name))
+            return True
+        except:
+            print('Load Failed: {0}'.format(file_name))
+            return False
+
     def get_formatted(self):
+
+        if self.load():
+            return
+
         stories = pd.read_csv(self.story_path)
 
         # key: int, value: list
@@ -63,7 +92,7 @@ class FormattedStory:
         word_frequency = Counter()
 
         for i in range(len(stories)):
-            row = stories.ix[i]
+            row = stories.loc[i]
 
             content = row['title'] + '\n' + row['content']
             content = content.lower()
@@ -123,4 +152,4 @@ def get_formatted_stories():
 
 if __name__ == '__main__':
     for data in get_formatted_stories():
-        data.pprint()
+        data.dump()
