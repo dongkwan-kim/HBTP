@@ -5,6 +5,7 @@ from format_story import *
 import diln
 import hdp
 import hbtp_upstream
+import hbtp_transmissive
 
 up.use_preprocess()
 
@@ -46,4 +47,5 @@ def run_model(model_cls, corpus, n_topic=100):
 if __name__ == '__main__':
     events, stories = get_formatted()
     for e, s in zip(events, stories):
-        run_model(hbtp_upstream.HBTP, get_corpus(hbtp_upstream.Corpus, e, s))
+        model = hbtp_upstream
+        run_model(model.HBTP, get_corpus(model.Corpus, e, s))

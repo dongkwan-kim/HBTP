@@ -2,6 +2,7 @@ import numpy as np
 import time
 from scipy.special import gammaln, psi
 from corpus import BaseCorpus
+from model import BaseModel
 
 
 eps = 1e-100
@@ -15,7 +16,7 @@ class Corpus(BaseCorpus):
         self.sigma = np.ones([self.M, self.n_topic])
 
 
-class DILN:
+class DILN(BaseModel):
     """
     The Discrete Infinite Logistic Normal Distribution (DILN),
     Paisley, John and Wang, Chong and Blei, David, 2011
@@ -27,32 +28,17 @@ class DILN:
         vocabulary size
     """
 
-    def __init__(self, n_topic, n_voca):
-        self.n_topic = n_topic
-        self.n_voca = n_voca  # vocabulary size
-        self.V = np.zeros(self.n_topic)
+    def __init__(self, n_topic, n_voca, alpha=5., beta=5., dir_prior=0.5,
+                 alpha_1=1, alpha_2=1e-3, beta_1=1, beta_2=1e-3):
+        super().__init__(n_topic, n_voca, alpha, beta, dir_prior)
 
-        # for even p
-        self.V[0] = 1. / self.n_topic
-        for k in range(1, n_topic - 1):
-            self.V[k] = (1. / self.n_topic) / np.prod(1. - self.V[:k])
-        self.V[self.n_topic - 1] = 1.
-
-        self.p = self.getP(self.V)
-        self.alpha = 5.
-        self.alpha_1 = 1  # prior for alpha
-        self.alpha_2 = 1e-3  # prior for alpha
-        self.beta = 5.
-        self.beta_1 = 1
-        self.beta_2 = 1e-3
-        self.dir_prior = 0.5
-        self.mean = np.zeros(self.n_topic)
+        # Hyper-parameters
+        self.alpha_1 = alpha_1
+        self.alpha_2 = alpha_2
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
         self.Kern = np.identity(self.n_topic)
         self.invKern = np.linalg.inv(self.Kern)
-        self.gamma = np.random.gamma(shape=1, scale=1, size=[self.n_voca, self.n_topic]) + self.dir_prior
-        self.c_a_max_step = 5
-        self.is_compute_lb = True
-        self.lbs = []
 
     def fit(self, corpus, max_iter=100):
         """ Run variational EM to fit the model
@@ -65,7 +51,7 @@ class DILN:
         -------
         """
 
-        for iter in range(max_iter):
+        for iteration in range(max_iter):
             lb = 0
             curr = time.clock()
             lb += self.update_C(corpus, False)
@@ -75,31 +61,20 @@ class DILN:
             # self.update_alpha()
             # self.update_beta(corpus)
             self.update_mean_Kernel(corpus)
-            print('%d iter, %.2f time, %.2f lower_bound' % (iter, time.clock() - curr, lb))
+            print('%d iter, %.2f time, %.2f lower_bound' % (iteration, time.clock() - curr, lb))
 
-            if iter > 3:
+            if iteration > 3:
                 self.lbs.append(lb)
-                if iter > 5:
-                    if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
-                        break
-                    if (self.lbs[-1] < self.lbs[-2]):
-                        break
+            if iteration > 5:
+                if (abs(self.lbs[-1] - self.lbs[-2]) / abs(self.lbs[-2])) < 1e-5:
+                    break
+                if self.lbs[-1] < self.lbs[-2]:
+                    break
 
     def update_mean_Kernel(self, corpus):
         self.mean = np.mean(corpus.mu, 0)
         self.Kern = (np.dot((corpus.mu - self.mean).T, (corpus.mu - self.mean)) + np.diag(
             np.sum(corpus.sigma, 0))) / corpus.M
-
-    def getStickLeft(self, V):
-        stl = np.ones(self.n_topic)
-        stl[1:] = np.cumprod(1. - V)[:-1]
-        return stl
-
-    def getP(self, V):
-        one_v = np.ones(self.n_topic)
-        one_v[1:] = (1. - V)[:-1]
-        p = V * np.cumprod(one_v)
-        return p
 
     # update per word v.d. phi
     def update_C(self, corpus, is_heldout):
@@ -112,18 +87,20 @@ class DILN:
         Z = corpus.A / corpus.B
 
         lb = 0
-        if (self.is_compute_lb):
+        if self.is_compute_lb:
             # expectation of p(eta) over variational q(eta)
-            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) - self.n_topic * self.n_voca * gammaln(self.dir_prior) - np.sum(
-                (self.dir_prior - 1) * (psiGamma - psiGammaSum))
+            l1 = self.n_topic * gammaln(self.dir_prior * self.n_voca) \
+                 - self.n_topic * self.n_voca * gammaln(self.dir_prior) \
+                 - np.sum((self.dir_prior - 1) * (psiGamma - psiGammaSum))
             lb += l1
             # entropy of q(eta)
-            l2 = np.sum(gammaln(gammaSum)) - np.sum(gammaln(self.gamma)) + np.sum(
-                (self.gamma - 1) * (psiGamma - psiGammaSum))
+            l2 = np.sum(gammaln(gammaSum)) - np.sum(gammaln(self.gamma)) \
+                 + np.sum((self.gamma - 1) * (psiGamma - psiGammaSum))
             lb -= l2
 
         if not is_heldout:
-            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior  # multinomial topic distribution prior
+            # multinomial topic distribution prior
+            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior
 
         for m in range(corpus.M):
             ids = corpus.word_ids[m]
@@ -138,7 +115,7 @@ class DILN:
                 self.gamma[ids, :] += cnt[:, np.newaxis] * C
             corpus.phi_doc[m, :] = np.sum(cnt[:, np.newaxis] * C, 0)
 
-            if (self.is_compute_lb):
+            if self.is_compute_lb:
                 # expectation of p(X) over variational q
                 lb += np.sum(cnt[:, np.newaxis] * C * E_ln_eta)
                 # expectation of p(C) over variational q
@@ -149,7 +126,6 @@ class DILN:
                 lb -= l2
 
         # print ' E[p(eta,C,X)]-E[q(eta,C)] = %f' % lb
-
         return lb
 
     # update variational gamma prior a and b for Z_mk
@@ -165,14 +141,14 @@ class DILN:
         corpus.A = bp + corpus.phi_doc
         corpus.B = np.exp(-corpus.mu + 0.5 * corpus.sigma) + (corpus.Nm / xi)[:, np.newaxis]
 
-        if (self.is_compute_lb):
+        if self.is_compute_lb:
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum(-bp * corpus.mu) + np.sum((bp - 1) * (E_ln_Z)) - np.sum(
+            l1 = np.sum(-bp * corpus.mu) + np.sum((bp - 1) * E_ln_Z) - np.sum(
                 np.exp((-corpus.mu + 0.5 * corpus.sigma)) * corpus.A / corpus.B) - corpus.M * np.sum(gammaln(bp))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * (E_ln_Z)) - np.sum(corpus.A) - np.sum(
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) - np.sum(corpus.A) - np.sum(
                 gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
@@ -190,15 +166,15 @@ class DILN:
         adivb = corpus.A / corpus.B
         for m in range(corpus.M):
             gradMU = - bp + (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) - np.dot(self.invKern, (
-            corpus.mu[m, :] - self.mean))
+                    corpus.mu[m, :] - self.mean))
             gradV = -0.5 * (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) - .5 * np.diag(
                 self.invKern) + .5 / corpus.sigma[m, :]
             stepsize = self.getstepMUV(corpus.mu[m, :], corpus.sigma[m, :], gradMU, gradV, bp, adivb[m, :], self.mean,
                                        self.invKern)
-            corpus.mu[m, :] += stepsize * gradMU;
+            corpus.mu[m, :] += stepsize * gradMU
             gradV *= stepsize
             gradV[gradV > 200] = 200
-            corpus.sigma[m, :] += gradV;
+            corpus.sigma[m, :] += gradV
 
         self.mean = np.mean(corpus.mu, 0)
         self.Kern = (np.dot((corpus.mu - self.mean).T, corpus.mu - self.mean) + np.diag(
@@ -237,19 +213,19 @@ class DILN:
 
             psiV = psi(self.beta * p)
 
-            vVec = - self.beta * stickLeft * sumMu + self.beta * stickLeft * sumLnZ - corpus.M * self.beta * stickLeft * psiV;
+            vVec = - self.beta * stickLeft * sumMu + self.beta * stickLeft * sumLnZ - corpus.M * self.beta * stickLeft * psiV
 
             for k in range(self.n_topic):
-                tmp1 = self.beta * sum(sumMu[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k]);
-                tmp3 = corpus.M * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k]);
-                vVec[k] = vVec[k] + tmp1 - tmp2;
-                vVec[k] = vVec[k] + tmp3;
+                tmp1 = self.beta * sum(sumMu[k + 1:] * p[k + 1:] / one_V[k])
+                tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k])
+                tmp3 = corpus.M * self.beta * sum(psiV[k + 1:] * p[k + 1:] / one_V[k])
+                vVec[k] = vVec[k] + tmp1 - tmp2
+                vVec[k] = vVec[k] + tmp3
                 vVec[k] = vVec[k]
-            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2];
-            vVec[self.n_topic - 1] = 0;
-            step_stick = self.getstepSTICK(self.V, vVec, sumMu, sumLnZ, self.beta, self.alpha, corpus.M);
-            self.V = self.V + step_stick * vVec;
+            vVec[:self.n_topic - 2] -= (self.alpha - 1) / one_V[:self.n_topic - 2]
+            vVec[self.n_topic - 1] = 0
+            step_stick = self.getstepSTICK(self.V, vVec, sumMu, sumLnZ, self.beta, self.alpha, corpus.M)
+            self.V = self.V + step_stick * vVec
             self.p = self.getP(self.V)
 
         if self.is_compute_lb:
@@ -279,38 +255,38 @@ class DILN:
         step_one = (1 - _curr) / _grad
         min_zero = 1
         min_one = 1
-        if (np.sum(step_zero > 0) > 0):
+        if np.sum(step_zero > 0) > 0:
             min_zero = min(step_zero[step_zero > 0])
-        if (np.sum(step_one > 0) > 0):
+        if np.sum(step_one > 0) > 0:
             min_one = min(step_one[step_one > 0])
-        max_step = min([min_zero, min_one]);
+        max_step = min([min_zero, min_one])
 
         if max_step > 0:
-            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step;
+            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * max_step
         else:
-            step_check_vec = list();
+            step_check_vec = list()
 
-        f = np.zeros(len(step_check_vec));
+        f = np.zeros(len(step_check_vec))
         for ite in range(len(step_check_vec)):
-            step_check = step_check_vec[ite];
-            vec_check = curr + step_check * grad;
+            step_check = step_check_vec[ite]
+            vec_check = curr + step_check * grad
             p = self.getP(vec_check)
-            f[ite] = -np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ)\
+            f[ite] = -np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
                      + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
 
         if len(f) != 0:
             b = f.argsort()[-1]
             step = step_check_vec[b]
         else:
-            step = 0;
+            step = 0
 
         if b == 1:
-            rho = .5;
-            bool = 1;
-            fold = f[b];
-            while bool:
-                step = rho * step;
-                vec_check = curr + step * grad;
+            rho = .5
+            keep_cont = True
+            fold = f[b]
+            while keep_cont:
+                step = rho * step
+                vec_check = curr + step * grad
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
@@ -319,7 +295,7 @@ class DILN:
                 if fnew > fold:
                     fold = fnew
                 else:
-                    bool = 0
+                    keep_cont = False
             step = step / rho
         return step
 
@@ -330,7 +306,7 @@ class DILN:
         isbound = np.sum(steps > 0) > 0
         maxstep2 = 0
         if np.sum(steps[steps > 0]) > 0:
-            maxstep2 = np.min(steps[steps > 0]);
+            maxstep2 = np.min(steps[steps > 0])
         if np.sum(steps >= 0) > 0:
             maxstep = min(steps[steps > 0])
             maxstep = min([maxstep, 1])
@@ -338,15 +314,15 @@ class DILN:
             maxstep = 1
 
         if maxstep > 0:
-            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * maxstep;
+            step_check_vec = np.array([0., .01, .125, .25, .375, .5, .625, .75, .875]) * maxstep
         else:
-            step_check_vec = list();
+            step_check_vec = list()
 
-        f = np.zeros(len(step_check_vec));
+        f = np.zeros(len(step_check_vec))
         for ite in range(len(step_check_vec)):
             step_check = step_check_vec[ite]
-            mu_check = currMu + step_check * vecMu;
-            v_check = currV + step_check * vecV;
+            mu_check = currMu + step_check * vecMu
+            v_check = currV + step_check * vecV
             v_check[v_check > 200] = 200
 
             f[ite] = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
@@ -354,23 +330,23 @@ class DILN:
                 np.log(v_check + eps))
 
         if len(f) != 0:
-            b = f.argsort()[-1];
-            stepsize = step_check_vec[b];
+            b = f.argsort()[-1]
+            stepsize = step_check_vec[b]
         else:
             stepsize = 0
 
         if b == len(step_check_vec):
             rho = 1.5
-            bool = 1
-            fold = f(b);
-            while bool:
+            keep_cont = True
+            fold = f[b]
+            while keep_cont:
                 stepsize = rho * stepsize
                 if isbound:
                     if stepsize > maxstep2:
-                        bool = 0;
+                        keep_cont = False
                         break
                 mu_check = currMu + stepsize * vecMu
-                v_check = currV + stepsize * vecV;
+                v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
                 fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
                     (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),
@@ -379,64 +355,26 @@ class DILN:
                 if fnew > fold:
                     fold = fnew
                 else:
-                    bool = 0
+                    keep_cont = False
             stepsize = stepsize / rho
 
         if b == 1:
-            rho = .5;
-            bool = 1;
-            fold = f[b];
-            while bool:
-                stepsize = rho * stepsize;
-                mu_check = currMu + stepsize * vecMu;
-                v_check = currV + stepsize * vecV;
+            rho = .5
+            keep_cont = True
+            fold = f[b]
+            while keep_cont:
+                stepsize = rho * stepsize
+                mu_check = currMu + stepsize * vecMu
+                v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
                 fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
                     (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),
-                    v_check) + .5 * np.sum(np.log(v_check + eps))
+                                                                              v_check) + .5 * np.sum(
+                    np.log(v_check + eps))
                 if fnew > fold:
                     fold = fnew
                 else:
-                    bool = 0
+                    keep_cont = False
             stepsize = stepsize / rho
 
         return stepsize
-
-    def write_top_words(self, corpus, filepath):
-        with open(filepath, 'w') as f:
-            for ti in range(corpus.K):
-                top_words = corpus.vocab[self.gamma[:, ti].argsort()[::-1][:20]]
-                f.write('%d,%f' % (ti, self.p[ti]))
-                for word in top_words:
-                    f.write(',' + word)
-                f.write('\n')
-
-    def write_corr_topics(self, corpus, filepath, thr=-1e100):
-        with open(filepath, 'w') as f:
-            Kern = self.Kern
-
-            for ti in range(self.n_topic - 1):
-                for ki in range(ti + 1, self.n_topic):
-                    if Kern[ti, ki] > thr:
-                        f.write(str(ti) + ',' + str(ki) + ',' + str(Kern[ti, ki]))
-                        top = corpus.vocab[self.gamma[:, ti].argsort()[::-1][:5]]
-                        for word in top:
-                            f.write(',' + word)
-                        top = corpus.vocab[self.gamma[:, ki].argsort()[::-1][:5]]
-                        f.write(',|')
-                        for word in top:
-                            f.write(',' + word)
-                        f.write('\n')
-
-    def save_result(self, folder, corpus):
-        import os, cPickle
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        np.savetxt(folder + '/final_mu.csv', corpus.mu, delimiter=',')
-        np.savetxt(folder + '/final_sigma.csv', corpus.sigma, delimiter=',')
-        np.savetxt(folder + '/final_mean.csv', self.mean, delimiter=',')
-        np.savetxt(folder + '/final_K.csv', self.Kern, delimiter=',')
-        np.savetxt(folder + '/final_V.csv', self.V, delimiter=',')
-        self.write_top_words(corpus, folder + '/final_top_words.csv')
-        self.write_corr_topics(corpus, folder + '/final_corr_topics.csv')
-        cPickle.dump(self, open(folder + '/model.pkl', 'w'))
