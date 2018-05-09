@@ -32,13 +32,15 @@ def get_story_files():
 
 class FormattedStory:
 
-    def __init__(self, story_path, stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None):
-        self.story_path = story_path
+    def __init__(self, story_path_list, stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None,
+                 force_save=False):
+        self.story_path_list = story_path_list
         self.stemmer = stemmer()
         self.delimiter = delimiter
         self.len_criteria = len_criteria if len_criteria else lambda l: l > 1
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
         self.stop_words, self.stop_sentences = get_stops()
+        self.force_save = force_save
 
         self.word_ids = None
         self.word_cnt = None
@@ -46,7 +48,7 @@ class FormattedStory:
         self.id_to_word = None
 
     def get_twitter_year(self):
-        return self.story_path.split('_')[2]
+        return 'twitter1516'
 
     def pprint(self):
         pprint.pprint(self.__dict__)
@@ -82,10 +84,12 @@ class FormattedStory:
 
     def get_formatted(self):
 
-        if self.load():
+        if self.load() and not self.force_save:
             return
 
-        stories = pd.read_csv(self.story_path)
+        stories: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.story_path_list), ignore_index=True)
+        stories = stories.drop_duplicates(subset=['tweet_id'])
+        stories = stories.reset_index(drop=True)
 
         # key: int, value: list
         id_to_content = dict()
@@ -93,10 +97,8 @@ class FormattedStory:
         # key: str, value: int
         word_frequency = Counter()
 
-        for i in range(len(stories)):
-            row = stories.loc[i]
-
-            content = row['title'] + '\n' + row['content']
+        for i, story in stories.iterrows():
+            content = story['title'] + '\n' + story['content']
             content = content.lower()
             content = self.remove_stop_sentences(content)
 
@@ -143,15 +145,11 @@ class FormattedStory:
         return None
 
 
-def get_formatted_stories() -> list:
-    r_list = []
-    for story_path in get_story_files():
-        fe = FormattedStory(story_path)
-        fe.get_formatted()
-        r_list.append(fe)
-    return r_list
+def get_formatted_stories() -> FormattedStory:
+    fs = FormattedStory(get_story_files())
+    fs.get_formatted()
+    return fs
 
 
 if __name__ == '__main__':
-    for data in get_formatted_stories():
-        data.dump()
+    get_formatted_stories().dump()

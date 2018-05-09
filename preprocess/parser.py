@@ -88,6 +88,7 @@ def event_table():
                 e = event_one_line(line, event_id)
                 if e.is_unique:
                     writer.write_row(e.get_dict())
+        Event.event_list = defaultdict(list)
 
 
 if __name__ == '__main__':
