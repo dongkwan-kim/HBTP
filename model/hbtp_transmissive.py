@@ -5,7 +5,6 @@ from collections import defaultdict
 from corpus import BaseCorpus
 from model import BaseModel
 
-
 eps = 1e-100
 
 
@@ -127,7 +126,7 @@ class HBTP(BaseModel):
 
         if not is_heldout:
             # multinomial topic distribution prior
-            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior  # multinomial topic distribution prior
+            self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior
 
         for m in range(corpus.M):
             ids = corpus.word_ids[m]
@@ -183,8 +182,8 @@ class HBTP(BaseModel):
             l1 = np.sum((bph - 1) * corpus.lnZ_edge) - np.sum(corpus.A / corpus.B) - np.sum(gammaln(bph))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * corpus.lnZ_edge) - np.sum(corpus.A) - np.sum(
-                gammaln(corpus.A))
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * corpus.lnZ_edge) \
+                 - np.sum(corpus.A) - np.sum(gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
 
@@ -221,8 +220,9 @@ class HBTP(BaseModel):
 
         if self.is_compute_lb:
             # expectation of p(V)
-            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) - (self.n_topic - 1) * gammaln(self.alpha) + np.sum(
-                (self.alpha - 1) * np.log(1 - self.V[:-1]))
+            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) \
+                  - (self.n_topic - 1) * gammaln(self.alpha) \
+                  + np.sum((self.alpha - 1) * np.log(1 - self.V[:-1]))
             # print ' E[p(V)]-E[q(V)] = %f' % lb
 
         # print '%f diff     %f' % (new_ll - old_ll, lb)
@@ -255,8 +255,8 @@ class HBTP(BaseModel):
             step_check = step_check_vec[ite]
             vec_check = curr + step_check * grad
             p = self.getP(vec_check)
-            f[ite] = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                     + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+            f[ite] = - M * np.sum(gammaln(beta * p)) \
+                     + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
 
         if len(f) != 0:
             b = f.argsort()[-1]
@@ -274,8 +274,8 @@ class HBTP(BaseModel):
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
-                fnew = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                       + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+                fnew = - M * np.sum(gammaln(beta * p)) \
+                       + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
                 if fnew > fold:
                     fold = fnew
                 else:
