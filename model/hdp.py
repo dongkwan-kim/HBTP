@@ -119,12 +119,11 @@ class HDP(BaseModel):
         if self.is_compute_lb:
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum((bp - 1) * (E_ln_Z)) - np.sum(
-                corpus.A / corpus.B) - corpus.M * np.sum(gammaln(bp))
+            l1 = np.sum((bp - 1) * E_ln_Z) - np.sum(corpus.A / corpus.B) - corpus.M * np.sum(gammaln(bp))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * (E_ln_Z)) - np.sum(corpus.A) - np.sum(
-                gammaln(corpus.A))
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) \
+                 - np.sum(corpus.A) - np.sum(gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
 
@@ -158,8 +157,9 @@ class HDP(BaseModel):
 
         if self.is_compute_lb:
             # expectation of p(V)
-            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) - (self.n_topic - 1) * gammaln(self.alpha) + np.sum(
-                (self.alpha - 1) * np.log(1 - self.V[:-1]))
+            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) \
+                  - (self.n_topic - 1) * gammaln(self.alpha) \
+                  + np.sum((self.alpha - 1) * np.log(1 - self.V[:-1]))
             # print ' E[p(V)]-E[q(V)] = %f' % lb
 
         # print '%f diff     %f' % (new_ll - old_ll, lb)
@@ -192,8 +192,8 @@ class HDP(BaseModel):
             step_check = step_check_vec[ite]
             vec_check = curr + step_check * grad
             p = self.getP(vec_check)
-            f[ite] = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                     + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+            f[ite] = - M * np.sum(gammaln(beta * p)) \
+                     + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
 
         if len(f) != 0:
             b = f.argsort()[-1]
@@ -211,8 +211,8 @@ class HDP(BaseModel):
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
-                fnew = - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                       + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+                fnew = - M * np.sum(gammaln(beta * p)) \
+                       + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
                 if fnew > fold:
                     fold = fnew
                 else:

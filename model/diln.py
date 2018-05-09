@@ -4,7 +4,6 @@ from scipy.special import gammaln, psi
 from corpus import BaseCorpus
 from model import BaseModel
 
-
 eps = 1e-100
 
 
@@ -73,8 +72,8 @@ class DILN(BaseModel):
 
     def update_mean_Kernel(self, corpus):
         self.mean = np.mean(corpus.mu, 0)
-        self.Kern = (np.dot((corpus.mu - self.mean).T, (corpus.mu - self.mean)) + np.diag(
-            np.sum(corpus.sigma, 0))) / corpus.M
+        self.Kern = (np.dot((corpus.mu - self.mean).T, (corpus.mu - self.mean)) + np.diag(np.sum(corpus.sigma, 0))) \
+                    / corpus.M
 
     # update per word v.d. phi
     def update_C(self, corpus, is_heldout):
@@ -144,12 +143,13 @@ class DILN(BaseModel):
         if self.is_compute_lb:
             # expectation of p(Z)
             E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum(-bp * corpus.mu) + np.sum((bp - 1) * E_ln_Z) - np.sum(
-                np.exp((-corpus.mu + 0.5 * corpus.sigma)) * corpus.A / corpus.B) - corpus.M * np.sum(gammaln(bp))
+            l1 = np.sum(-bp * corpus.mu) + np.sum((bp - 1) * E_ln_Z) \
+                 - np.sum(np.exp((-corpus.mu + 0.5 * corpus.sigma)) * corpus.A / corpus.B) \
+                 - corpus.M * np.sum(gammaln(bp))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) - np.sum(corpus.A) - np.sum(
-                gammaln(corpus.A))
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) \
+                 - np.sum(corpus.A) - np.sum(gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
 
@@ -165,28 +165,35 @@ class DILN(BaseModel):
 
         adivb = corpus.A / corpus.B
         for m in range(corpus.M):
-            gradMU = - bp + (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) - np.dot(self.invKern, (
-                    corpus.mu[m, :] - self.mean))
-            gradV = -0.5 * (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) - .5 * np.diag(
-                self.invKern) + .5 / corpus.sigma[m, :]
-            stepsize = self.getstepMUV(corpus.mu[m, :], corpus.sigma[m, :], gradMU, gradV, bp, adivb[m, :], self.mean,
-                                       self.invKern)
+            gradMU = - bp + (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) \
+                     - np.dot(self.invKern, (corpus.mu[m, :] - self.mean))
+            gradV = - 0.5 * (adivb[m, :]) * np.exp(-corpus.mu[m, :] + 0.5 * corpus.sigma[m, :]) \
+                    - .5 * np.diag(self.invKern) + .5 / corpus.sigma[m, :]
+            stepsize = self.getstepMUV(
+                currMu=corpus.mu[m, :],
+                currV=corpus.sigma[m, :],
+                vecMu=gradMU,
+                vecV=gradV,
+                bp=bp,
+                AdivB=adivb[m, :],
+                u=self.mean,
+                invKern=self.invKern
+            )
             corpus.mu[m, :] += stepsize * gradMU
             gradV *= stepsize
             gradV[gradV > 200] = 200
             corpus.sigma[m, :] += gradV
 
         self.mean = np.mean(corpus.mu, 0)
-        self.Kern = (np.dot((corpus.mu - self.mean).T, corpus.mu - self.mean) + np.diag(
-            np.sum(corpus.sigma, 0))) / corpus.M
+        self.Kern = (np.dot((corpus.mu - self.mean).T, corpus.mu - self.mean) + np.diag(np.sum(corpus.sigma, 0))) \
+                    / corpus.M
         self.invKern = np.linalg.inv(self.Kern)
 
         if self.is_compute_lb:
             # lb += -np.sum(bp*corpus.mu) + np.sum((bp - 1)*(psi(corpus.A) - np.log(corpus.B))) - np.sum(np.exp(-corpus.mu + 0.5*corpus.sigma) * corpus.A/corpus.B)
             # expectation of p(w) given variational parameter
-            l1 = -0.5 * np.sum(
-                np.diag(np.dot(np.dot(corpus.mu - self.mean, self.invKern), (corpus.mu - self.mean).T))) - 0.5 * np.sum(
-                np.diag(self.Kern) * corpus.sigma)
+            l1 = - 0.5 * np.sum(np.diag(np.dot(np.dot(corpus.mu - self.mean, self.invKern), (corpus.mu - self.mean).T))) \
+                 - 0.5 * np.sum(np.diag(self.Kern) * corpus.sigma)
             lb += l1
             # entropy of q(w)
             l2 = -0.5 * np.sum(np.log(corpus.sigma))
@@ -213,7 +220,9 @@ class DILN(BaseModel):
 
             psiV = psi(self.beta * p)
 
-            vVec = - self.beta * stickLeft * sumMu + self.beta * stickLeft * sumLnZ - corpus.M * self.beta * stickLeft * psiV
+            vVec = - self.beta * stickLeft * sumMu \
+                   + self.beta * stickLeft * sumLnZ \
+                   - corpus.M * self.beta * stickLeft * psiV
 
             for k in range(self.n_topic):
                 tmp1 = self.beta * sum(sumMu[k + 1:] * p[k + 1:] / one_V[k])
@@ -230,8 +239,9 @@ class DILN(BaseModel):
 
         if self.is_compute_lb:
             # expectation of p(V)
-            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) - (self.n_topic - 1) * gammaln(self.alpha) + np.sum(
-                (self.alpha - 1) * np.log(1 - self.V[:-1]))
+            lb += (self.n_topic - 1) * gammaln(self.alpha + 1) \
+                  - (self.n_topic - 1) * gammaln(self.alpha) \
+                  + np.sum((self.alpha - 1) * np.log(1 - self.V[:-1]))
             # print ' E[p(V)]-E[q(V)] = %f' % lb
 
         # print '%f diff     %f' % (new_ll - old_ll, lb)
@@ -271,8 +281,8 @@ class DILN(BaseModel):
             step_check = step_check_vec[ite]
             vec_check = curr + step_check * grad
             p = self.getP(vec_check)
-            f[ite] = -np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                     + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+            f[ite] = - np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) \
+                     + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
 
         if len(f) != 0:
             b = f.argsort()[-1]
@@ -290,8 +300,8 @@ class DILN(BaseModel):
                 tmp = np.zeros(vec_check.size)
                 tmp[1:] = vec_check[:-1]
                 p = vec_check * np.cumprod(1 - tmp)
-                fnew = -np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) + np.sum((beta * p - 1) * sumlnZ) \
-                       + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
+                fnew = - np.sum(beta * p * sumMu) - M * np.sum(gammaln(beta * p)) \
+                       + np.sum((beta * p - 1) * sumlnZ) + (alpha - 1.) * np.sum(np.log(1. - vec_check[:-1] + eps))
                 if fnew > fold:
                     fold = fnew
                 else:
@@ -301,7 +311,6 @@ class DILN(BaseModel):
 
     # get stick length to update the gradient
     def getstepMUV(self, currMu, currV, vecMu, vecV, bp, AdivB, u, invKern):
-        stepsize = 0
         steps = -currV[vecV != 0] / vecV[vecV != 0]
         isbound = np.sum(steps > 0) > 0
         maxstep2 = 0
@@ -325,9 +334,11 @@ class DILN(BaseModel):
             v_check = currV + step_check * vecV
             v_check[v_check > 200] = 200
 
-            f[ite] = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
-                (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern), v_check) + .5 * np.sum(
-                np.log(v_check + eps))
+            f[ite] = - np.sum(mu_check * bp) \
+                     - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) \
+                     - .5 * np.dot((mu_check - u), np.dot(invKern, (mu_check - u))) \
+                     - np.dot(.5 * np.diag(invKern), v_check) \
+                     + .5 * np.sum(np.log(v_check + eps))
 
         if len(f) != 0:
             b = f.argsort()[-1]
@@ -343,15 +354,15 @@ class DILN(BaseModel):
                 stepsize = rho * stepsize
                 if isbound:
                     if stepsize > maxstep2:
-                        keep_cont = False
                         break
                 mu_check = currMu + stepsize * vecMu
                 v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
-                fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
-                    (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),
-                                                                              v_check) + .5 * np.sum(
-                    np.log(v_check + eps))
+                fnew = - np.sum(mu_check * bp) \
+                       - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) \
+                       - .5 * np.dot((mu_check - u), np.dot(invKern, (mu_check - u))) \
+                       - np.dot(.5 * np.diag(invKern), v_check) \
+                       + .5 * np.sum(np.log(v_check + eps))
                 if fnew > fold:
                     fold = fnew
                 else:
@@ -367,10 +378,11 @@ class DILN(BaseModel):
                 mu_check = currMu + stepsize * vecMu
                 v_check = currV + stepsize * vecV
                 v_check[v_check > 200] = 200
-                fnew = - np.sum(mu_check * bp) - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) - .5 * np.dot(
-                    (mu_check - u), np.dot(invKern, (mu_check - u))) - np.dot(.5 * np.diag(invKern),
-                                                                              v_check) + .5 * np.sum(
-                    np.log(v_check + eps))
+                fnew = - np.sum(mu_check * bp) \
+                       - np.sum(AdivB * np.exp(-mu_check + .5 * v_check)) \
+                       - .5 * np.dot((mu_check - u), np.dot(invKern, (mu_check - u))) \
+                       - np.dot(.5 * np.diag(invKern), v_check) \
+                       + .5 * np.sum(np.log(v_check + eps))
                 if fnew > fold:
                     fold = fnew
                 else:

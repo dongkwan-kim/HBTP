@@ -84,7 +84,7 @@ class FormattedStory:
 
     def get_formatted(self):
 
-        if self.load() and not self.force_save:
+        if not self.force_save and self.load():
             return
 
         stories: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.story_path_list), ignore_index=True)
