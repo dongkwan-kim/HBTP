@@ -67,7 +67,7 @@ class FormattedEvent:
 
     def get_formatted(self):
 
-        if self.load() and not self.force_save:
+        if not self.force_save and self.load():
             return
 
         events: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.event_path_list), ignore_index=True)
