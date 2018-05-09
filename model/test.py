@@ -46,6 +46,5 @@ def run_model(model_cls, corpus, n_topic=100):
 
 if __name__ == '__main__':
     events, stories = get_formatted()
-    for e, s in zip(events, stories):
-        model = hbtp_upstream
-        run_model(model.HBTP, get_corpus(model.Corpus, e, s))
+    model = hbtp_transmissive
+    run_model(model.HBTP, get_corpus(model.Corpus, events, stories))

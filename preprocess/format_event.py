@@ -13,8 +13,8 @@ def get_event_files():
 
 class FormattedEvent:
 
-    def __init__(self, event_path, force_save=False):
-        self.event_path = event_path
+    def __init__(self, event_path_list, force_save=False):
+        self.event_path_list = event_path_list
         self.parent_to_child = None
         self.child_to_parent_and_story = None
         self.story_to_users = None
@@ -22,7 +22,7 @@ class FormattedEvent:
         self.force_save = force_save
 
     def get_twitter_year(self):
-        return self.event_path.split('_')[2]
+        return 'twitter1516'
 
     def pprint(self):
         pprint.pprint(self.__dict__)
@@ -70,7 +70,11 @@ class FormattedEvent:
         if self.load() and not self.force_save:
             return
 
-        events = pd.read_csv(self.event_path)
+        events: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.event_path_list), ignore_index=True)
+
+        events = events.drop(columns=['event_id'])
+        events = events.drop_duplicates()
+        events = events.reset_index(drop=True)
 
         parent_to_child = defaultdict(list)
         child_to_parent_and_story = defaultdict(list)
@@ -81,8 +85,7 @@ class FormattedEvent:
         story_set = set()
 
         # Construct a dict from feature to feature
-        for i in events.index:
-            event = events.loc[i]
+        for i, event in events.iterrows():
             parent, user, story = map(str, [event['parent_id'], event['user_id'], event['story_id']])
 
             parent_to_child[parent].append(user)
@@ -121,15 +124,11 @@ class FormattedEvent:
         self.user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
 
 
-def get_formatted_events() -> list:
-    r_list = []
-    for event_path in get_event_files():
-        fe = FormattedEvent(event_path)
-        fe.get_formatted()
-        r_list.append(fe)
-    return r_list
+def get_formatted_events() -> FormattedEvent:
+    fe = FormattedEvent(get_event_files())
+    fe.get_formatted()
+    return fe
 
 
 if __name__ == '__main__':
-    for data in get_formatted_events():
-        data.dump()
+    get_formatted_events().dump()
