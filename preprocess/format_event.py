@@ -70,9 +70,9 @@ class FormattedEvent:
         if not self.force_save and self.load():
             return
 
-        events: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.event_path_list), ignore_index=True)
+        events = pd.concat((pd.read_csv(path) for path in self.event_path_list), ignore_index=True)
 
-        events = events.drop(columns=['event_id'])
+        events = events.drop(['event_id'], axis=1)
         events = events.drop_duplicates()
         events = events.reset_index(drop=True)
 

@@ -87,7 +87,7 @@ class FormattedStory:
         if not self.force_save and self.load():
             return
 
-        stories: pd.DataFrame = pd.concat((pd.read_csv(path) for path in self.story_path_list), ignore_index=True)
+        stories = pd.concat((pd.read_csv(path) for path in self.story_path_list), ignore_index=True)
         stories = stories.drop_duplicates(subset=['tweet_id'])
         stories = stories.reset_index(drop=True)
 
