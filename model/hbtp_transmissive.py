@@ -126,6 +126,7 @@ class HBTP(BaseModel):
             lb -= l2
 
         if not is_heldout:
+            # multinomial topic distribution prior
             self.gamma = np.zeros([self.n_voca, self.n_topic]) + self.dir_prior  # multinomial topic distribution prior
 
         for m in range(corpus.M):
@@ -165,7 +166,7 @@ class HBTP(BaseModel):
 
         p_user = Z_user / np.sum(Z_user, axis=1)[:, np.newaxis]
         p_user = np.vstack((p_user, self.p))
-        H = np.ones(corpus.n_user + 1) * 100
+        H = np.ones(corpus.n_user + 1) * 30
         H[-1] = 1.
         bph = self.beta * p_user[corpus.edgerow_parent] * H[corpus.edgerow_parent][:, np.newaxis]
         # bph = self.beta * self.p
@@ -178,12 +179,11 @@ class HBTP(BaseModel):
 
         if self.is_compute_lb:
             # expectation of p(Z)
-            E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum((bph - 1) * E_ln_Z) / corpus.n_edge - np.sum(
-                corpus.A / corpus.B) - np.sum(gammaln(bph))
+            corpus.lnZ_edge = psi(corpus.A) - np.log(corpus.B)
+            l1 = np.sum((bph - 1) * corpus.lnZ_edge) - np.sum(corpus.A / corpus.B) - np.sum(gammaln(bph))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) - np.sum(corpus.A) - np.sum(
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * corpus.lnZ_edge) - np.sum(corpus.A) - np.sum(
                 gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
@@ -204,7 +204,7 @@ class HBTP(BaseModel):
 
             psiV = psi(self.beta * p)
 
-            vVec = self.beta * stickLeft * sumLnZ - corpus.n_edge * self.beta * stickLeft * psiV
+            vVec = self.beta * stickLeft * sumLnZ - n_edges_with_root_parents * self.beta * stickLeft * psiV
 
             for k in range(self.n_topic):
                 tmp2 = self.beta * sum(sumLnZ[k + 1:] * p[k + 1:] / one_V[k])
@@ -216,6 +216,7 @@ class HBTP(BaseModel):
             vVec[self.n_topic - 1] = 0
             step_stick = self.getstepSTICK(self.V, vVec, sumLnZ, self.beta, self.alpha, n_edges_with_root_parents)
             self.V = self.V + step_stick * vVec
+            print(step_stick)
             self.p = self.getP(self.V)
 
         if self.is_compute_lb:
