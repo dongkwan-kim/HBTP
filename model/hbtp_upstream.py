@@ -162,12 +162,11 @@ class HBTP(BaseModel):
 
         if self.is_compute_lb:
             # expectation of p(Z)
-            E_ln_Z = psi(corpus.A) - np.log(corpus.B)
-            l1 = np.sum((bp - 1) * E_ln_Z) - np.sum(
-                corpus.A / corpus.B) - corpus.n_edge * np.sum(gammaln(bp))
+            corpus.lnZ_edge = psi(corpus.A) - np.log(corpus.B)
+            l1 = np.sum((bp - 1) * corpus.lnZ_edge) - np.sum(corpus.A / corpus.B) - corpus.n_edge * np.sum(gammaln(bp))
             lb += l1
             # entropy of q(Z)
-            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * E_ln_Z) - np.sum(corpus.A) - np.sum(
+            l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * corpus.lnZ_edge) - np.sum(corpus.A) - np.sum(
                 gammaln(corpus.A))
             lb -= l2
             # print ' E[p(Z)]-E[q(Z)] = %f' % lb
