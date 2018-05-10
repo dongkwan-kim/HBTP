@@ -4,13 +4,15 @@ from scipy.special import gammaln, psi
 from collections import defaultdict
 from corpus import BaseCorpus
 from model import BaseModel
-
+from RBFKernel import RBFKernel
+from copy import deepcopy
+from sklearn.cluster import KMeans
 eps = 1e-100
 
 
 class Corpus(BaseCorpus):
 
-    def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic):
+    def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic, length_scale=1.0, noise_precision=10.0, lrate=0.001): # 0.0001, (0.01 doesn't work)
         super().__init__(vocab, word_ids, word_cnt, n_topic)
 
         self.story_to_users = story_to_users
@@ -42,10 +44,28 @@ class Corpus(BaseCorpus):
         self.edgerow_story = np.array(edgerow_story)
         self.edgerow_parent = np.array(edgerow_parent)
 
-        self.h = np.ones(self.M) * 30
+        # GP-LVM settings
+        self.kernel = RBFKernel(length_scale)
+        # self.h = np.random.randint(20, 40, self.M)
+        self.h = np.random.rand(self.M) + 2
+        self.P = 25
+
+        self.c1 = np.zeros((self.M, self.n_topic))
+        self.mu_y = np.zeros((self.P)) # corresponds to M in GPSTM code
+        self.Sigma_y = np.zeros((self.P, self.P)) # corresponds to S in GPSTM code
+
+        self.lrate = lrate
+        self.noise_precision = noise_precision
+        self.InpNoise = np.ones([2, 2]) * np.sqrt(0.1)
 
         # {user:int -> edgerows:int}
         self.user_edgerows = dict(user_edgerows)
+
+        # Saving C
+        self.C = dict()
+
+    def safe_inv(self, matrix_):
+        return np.linalg.inv(matrix_ + np.identity(matrix_.shape[0]) * 1e-10)
 
 
 class HBTP(BaseModel):
@@ -62,6 +82,7 @@ class HBTP(BaseModel):
 
     def __init__(self, n_topic, n_voca, alpha=5., beta=5., dir_prior=0.5):
         super().__init__(n_topic, n_voca, alpha, beta, dir_prior)
+        self.GP_iter = 10
 
     def fit(self, corpus, max_iter=100):
         """ Run variational EM to fit the model
@@ -77,9 +98,11 @@ class HBTP(BaseModel):
         for iteration in range(max_iter):
             lb = 0
             curr = time.clock()
-            lb += self.update_C(corpus, False)
+            lb += self.update_C(corpus, False, iteration)
             lb += self.update_Z(corpus)
             lb += self.update_V(corpus)
+            if (iteration + 1) % 5 == 0:
+                self.update_GPLV(corpus, iteration)
             print('%d iter, %.2f time, %.2f lower_bound' % (iteration, time.clock() - curr, lb))
 
             if iteration > 3:
@@ -93,8 +116,7 @@ class HBTP(BaseModel):
             """
 
     # update per word v.d. phi
-    def update_C(self, corpus, is_heldout):
-
+    def update_C(self, corpus, is_heldout, thisiter):
         corpus.phi_doc = np.zeros([corpus.M, self.n_topic])
         psiGamma = psi(self.gamma)
         gammaSum = np.sum(self.gamma, 0)
@@ -133,11 +155,17 @@ class HBTP(BaseModel):
         for m in range(corpus.M):
             ids = corpus.word_ids[m]
             cnt = corpus.word_cnt[m]
+            Nm = np.sum(cnt)
 
             # C = len(ids) x K
             E_ln_eta = psiGamma[ids, :] - psiGammaSum
-            C = np.exp(E_ln_eta + lnZ[m, :])
+            if thisiter < 5:
+                C = np.exp(E_ln_eta + lnZ[m, :])
+            else:
+                C = np.exp(E_ln_eta + lnZ[m, :] \
+                    + (corpus.c1[m] / np.float(Nm) - (corpus.phi_doc[m] - corpus.C[m]  + 1)/ (2 * np.float(Nm)**2 )) * corpus.noise_precision)
             C = C / np.sum(C, 1)[:, np.newaxis]
+            corpus.C[m] = C
 
             if not is_heldout:
                 self.gamma[ids, :] += cnt[:, np.newaxis] * C
@@ -168,8 +196,8 @@ class HBTP(BaseModel):
         p_user = Z_user / np.sum(Z_user, axis=1)[:, np.newaxis]
         p_user = np.vstack((p_user, self.p))
         H = corpus.h[corpus.edgerow_story]
-        H[corpus.edgerow_parent == corpus.rootid] = 1.
-        bph = self.beta * p_user[corpus.edgerow_parent] * H[:, np.newaxis]
+        H[corpus.edgerow_parent == corpus.rootid] = 0.
+        bph = self.beta * p_user[corpus.edgerow_parent] * np.exp(H[:, np.newaxis])
 
         xi = np.sum(corpus.A / corpus.B, 1)  # m dim
         corpus.A = bph + corpus.phi_doc[corpus.edgerow_story]
@@ -186,7 +214,6 @@ class HBTP(BaseModel):
             l2 = np.sum(corpus.A * np.log(corpus.B)) + np.sum((corpus.A - 1) * corpus.lnZ_edge) \
                  - np.sum(corpus.A) - np.sum(gammaln(corpus.A))
             lb -= l2
-            # print ' E[p(Z)]-E[q(Z)] = %f' % lb
 
         return lb
 
@@ -224,9 +251,7 @@ class HBTP(BaseModel):
             lb += (self.n_topic - 1) * gammaln(self.alpha + 1) \
                   - (self.n_topic - 1) * gammaln(self.alpha) \
                   + np.sum((self.alpha - 1) * np.log(1 - self.V[:-1]))
-            # print ' E[p(V)]-E[q(V)] = %f' % lb
 
-        # print '%f diff     %f' % (new_ll - old_ll, lb)
         return lb
 
     # get stick length to update the gradient
@@ -283,3 +308,93 @@ class HBTP(BaseModel):
                     keep_cont = False
             step = step / rho
         return step
+
+    def update_GPLV(self, corpus, thisiter):
+        doc_means = corpus.phi_doc / np.sum(corpus.phi_doc, axis=1)[:, np.newaxis]
+        c1 = deepcopy(doc_means)
+
+        # for _ in range(self.GP_iter):
+
+        #     kmmodel = KMeans(n_clusters=corpus.P, n_init=10, init='random')
+        #     # kmmodel.fit(np.float(C[Ytr[:, rr] == 1, :]))
+        #     kmmodel.fit(c1[corpus.h > np.mean(corpus.h)])
+        #     inducing_points = kmmodel.cluster_centers_
+        #     Kgg = corpus.kernel.selfCompute(inducing_points)
+        #     Kgg_inv = corpus.safe_inv(Kgg)
+        #     # Kgg_inv = np.linalg.inv(Kgg)
+        #     # (mu_y, Sigma_y, EKgc, EKgcKgcT) = self.update_GP(Kgg_inv, inducing_points, C, Ytr, corpus.InpNoise)
+
+        #     EKgc = corpus.kernel.EVzx(inducing_points, c1, corpus.InpNoise)
+        #     EKgcKgcT = np.sum(corpus.kernel.EVzxVzxT(inducing_points, c1, corpus.InpNoise), axis=0)
+
+        #     Sigma_y = corpus.safe_inv(Kgg_inv + corpus.noise_precision * Kgg_inv.dot(EKgcKgcT).dot(Kgg_inv))
+        #     # Sigma_y = np.linalg.inv(Kgg_inv + corpus.noise_precision * Kgg_inv.dot(EKgcKgcT).dot(Kgg_inv))
+        #     mu_y = corpus.noise_precision * Sigma_y.dot(Kgg_inv).dot(EKgc).dot(corpus.h)
+        #     if thisiter == 4:
+        #         gC = -corpus.noise_precision * c1 + corpus.noise_precision * doc_means
+        #     else:
+        #         gC = -corpus.noise_precision * corpus.c1 + corpus.noise_precision * doc_means
+
+        #     for kk in range(corpus.n_topic):
+        #         grad_EKcg = corpus.kernel.grad_EVzx_by_mu_batch(EKgc, inducing_points, c1, corpus.InpNoise, kk)
+        #         grad_EKgcgcT_tensor = corpus.kernel.grad_EVzxVzxT_by_mu_batch(EKgcKgcT, inducing_points, c1, corpus.InpNoise, kk)
+        #         Multiplier = Kgg_inv.dot(mu_y.dot(mu_y.T) + Sigma_y).dot(Kgg_inv) - Kgg_inv
+        #         Term2 = np.zeros([corpus.M, ])
+        #         for dd in range(corpus.M):
+        #             Term2[dd] = grad_EKgcgcT_tensor[dd, :, :].dot(Multiplier).trace()
+
+        #         gC[:, kk] += -0.5 * np.float(corpus.noise_precision) * Term2
+
+        #         label_mat = np.tile(corpus.h, [corpus.P, 1]).T
+        #         gC[:, kk] += np.float64(corpus.noise_precision) * (label_mat * grad_EKcg).dot(Kgg_inv).dot(mu_y).ravel()
+
+        #     c1 = c1 + corpus.lrate * gC
+        #     print(np.mean(np.abs(gC)))
+
+        EgC_square = np.zeros((corpus.M, corpus.n_topic))
+
+        for _ in range(self.GP_iter):
+
+            kmmodel = KMeans(n_clusters=corpus.P, n_init=10, init='random')
+            # kmmodel.fit(np.float(C[Ytr[:, rr] == 1, :]))
+            kmmodel.fit(c1[corpus.h > np.mean(corpus.h)])
+            inducing_points = kmmodel.cluster_centers_
+            Kgg = corpus.kernel.selfCompute(inducing_points)
+            Kgg_inv = corpus.safe_inv(Kgg)
+            # Kgg_inv = np.linalg.inv(Kgg)
+            # (mu_y, Sigma_y, EKgc, EKgcKgcT) = self.update_GP(Kgg_inv, inducing_points, C, Ytr, corpus.InpNoise)
+
+            EKgc = corpus.kernel.EVzx(inducing_points, c1, corpus.InpNoise)
+            EKgcKgcT = np.sum(corpus.kernel.EVzxVzxT(inducing_points, c1, corpus.InpNoise), axis=0)
+
+            Sigma_y = corpus.safe_inv(Kgg_inv + corpus.noise_precision * Kgg_inv.dot(EKgcKgcT).dot(Kgg_inv))
+            # Sigma_y = np.linalg.inv(Kgg_inv + corpus.noise_precision * Kgg_inv.dot(EKgcKgcT).dot(Kgg_inv))
+            mu_y = corpus.noise_precision * Sigma_y.dot(Kgg_inv).dot(EKgc).dot(corpus.h)
+            if thisiter == 4:
+                gC = -corpus.noise_precision * c1 + corpus.noise_precision * doc_means
+            else:
+                gC = -corpus.noise_precision * corpus.c1 + corpus.noise_precision * doc_means
+
+            for kk in range(corpus.n_topic):
+                grad_EKcg = corpus.kernel.grad_EVzx_by_mu_batch(EKgc, inducing_points, c1, corpus.InpNoise, kk)
+                grad_EKgcgcT_tensor = corpus.kernel.grad_EVzxVzxT_by_mu_batch(EKgcKgcT, inducing_points, c1, corpus.InpNoise, kk)
+                Multiplier = Kgg_inv.dot(mu_y.dot(mu_y.T) + Sigma_y).dot(Kgg_inv) - Kgg_inv
+                Term2 = np.zeros([corpus.M, ])
+                for dd in range(corpus.M):
+                    Term2[dd] = grad_EKgcgcT_tensor[dd, :, :].dot(Multiplier).trace()
+
+                gC[:, kk] += -0.5 * np.float(corpus.noise_precision) * Term2
+
+                label_mat = np.tile(corpus.h, [corpus.P, 1]).T
+                gC[:, kk] += np.float64(corpus.noise_precision) * (label_mat * grad_EKcg).dot(Kgg_inv).dot(mu_y).ravel()
+
+            EgC_square = 0.9 * EgC_square + 0.1 * np.power(gC, 2)
+            c1 = c1 + corpus.lrate / np.sqrt( EgC_square + 1e-8 ) * gC
+            print(np.mean(np.abs(gC)), np.mean(np.abs(corpus.lrate / np.sqrt( EgC_square + 1e-8 ))))
+
+        corpus.c1 = c1
+        self.mu_y = mu_y
+        self.Sigma_y = Sigma_y
+        self.inducing_points = inducing_points
+        self.Kgg_inv = Kgg_inv
+        self.Kgg = Kgg
