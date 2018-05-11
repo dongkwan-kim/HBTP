@@ -12,7 +12,7 @@ eps = 1e-100
 
 class Corpus(BaseCorpus):
 
-    def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic, length_scale=1.0, noise_precision=10.0, lrate=0.001): # 0.0001, (0.01 doesn't work)
+    def __init__(self, vocab, word_ids, word_cnt, child_to_parent_and_story, story_to_users, n_topic, length_scale=1.0, noise_precision=10.0, lrate_gC=0.001, lrate_gh = 0.01): # 0.0001, (0.01 doesn't work)
         super().__init__(vocab, word_ids, word_cnt, n_topic)
 
         self.story_to_users = story_to_users
@@ -30,14 +30,18 @@ class Corpus(BaseCorpus):
         user_edgerows = defaultdict(list)
         edgerow_story = list()
         edgerow_parent = list()
+        story_edgerow = defaultdict(list)
+        story_parent = defaultdict(list)
+        
         cnt = 0
-
         # (child:int, [(parent:int, story:int), ...])
         for child, parent_and_story in child_to_parent_and_story.items():
             for parent, story in parent_and_story:
                 user_edgerows[child].append(cnt)
                 edgerow_story.append(story)
                 edgerow_parent.append(parent)
+                story_edgerow[story].append(cnt)
+                story_parent[story].append(parent)
                 cnt += 1
 
         # np.array(list of int)
@@ -48,18 +52,22 @@ class Corpus(BaseCorpus):
         self.kernel = RBFKernel(length_scale)
         # self.h = np.random.randint(20, 40, self.M)
         self.h = np.random.rand(self.M) + 2
+        self.h_original = deepcopy(self.h)
         self.P = 25
 
         self.c1 = np.zeros((self.M, self.n_topic))
         self.mu_y = np.zeros((self.P)) # corresponds to M in GPSTM code
         self.Sigma_y = np.zeros((self.P, self.P)) # corresponds to S in GPSTM code
 
-        self.lrate = lrate
+        self.lrate_gC = lrate_gC
+        self.lrate_gh = lrate_gh
         self.noise_precision = noise_precision
         self.InpNoise = np.ones([2, 2]) * np.sqrt(0.1)
 
         # {user:int -> edgerows:int}
         self.user_edgerows = dict(user_edgerows)
+        self.story_edgerow = dict(story_edgerow)
+        self.story_parent = dict(story_parent)
 
         # Saving C
         self.C = dict()
@@ -82,8 +90,8 @@ class HBTP(BaseModel):
 
     def __init__(self, n_topic, n_voca, alpha=5., beta=5., dir_prior=0.5):
         super().__init__(n_topic, n_voca, alpha, beta, dir_prior)
-        self.GP_iter = 10
-
+        self.GP_iter = 5
+        self.h_iter = 5
     def fit(self, corpus, max_iter=100):
         """ Run variational EM to fit the model
         Parameters
@@ -101,8 +109,10 @@ class HBTP(BaseModel):
             lb += self.update_C(corpus, False, iteration)
             lb += self.update_Z(corpus)
             lb += self.update_V(corpus)
-            if (iteration + 1) % 5 == 0:
-                self.update_GPLV(corpus, iteration)
+            if (iteration + 1) % 10 == 0:
+                for small_iteration in range(3):
+                    self.update_GPLV(corpus, iteration)
+                    self.update_hindex(corpus)
             print('%d iter, %.2f time, %.2f lower_bound' % (iteration, time.clock() - curr, lb))
 
             if iteration > 3:
@@ -348,7 +358,7 @@ class HBTP(BaseModel):
         #         label_mat = np.tile(corpus.h, [corpus.P, 1]).T
         #         gC[:, kk] += np.float64(corpus.noise_precision) * (label_mat * grad_EKcg).dot(Kgg_inv).dot(mu_y).ravel()
 
-        #     c1 = c1 + corpus.lrate * gC
+        #     c1 = c1 + corpus.lrate_gC * gC
         #     print(np.mean(np.abs(gC)))
 
         EgC_square = np.zeros((corpus.M, corpus.n_topic))
@@ -389,12 +399,59 @@ class HBTP(BaseModel):
                 gC[:, kk] += np.float64(corpus.noise_precision) * (label_mat * grad_EKcg).dot(Kgg_inv).dot(mu_y).ravel()
 
             EgC_square = 0.9 * EgC_square + 0.1 * np.power(gC, 2)
-            c1 = c1 + corpus.lrate / np.sqrt( EgC_square + 1e-8 ) * gC
-            print(np.mean(np.abs(gC)), np.mean(np.abs(corpus.lrate / np.sqrt( EgC_square + 1e-8 ))))
+            c1 = c1 + corpus.lrate_gC / np.sqrt( EgC_square + 1e-8 ) * gC
+            print(np.mean(np.abs(gC)), np.mean(np.abs(corpus.lrate_gC / np.sqrt( EgC_square + 1e-8 ))))
 
         corpus.c1 = c1
-        self.mu_y = mu_y
-        self.Sigma_y = Sigma_y
-        self.inducing_points = inducing_points
-        self.Kgg_inv = Kgg_inv
-        self.Kgg = Kgg
+        corpus.mu_y = mu_y
+        corpus.Sigma_y = Sigma_y
+        corpus.inducing_points = inducing_points
+        corpus.Kgg_inv = Kgg_inv
+        corpus.Kgg = Kgg
+
+    def update_hindex(self, corpus):
+        xi_inv = 0.1
+        kappa = 10.
+        h = deepcopy(corpus.h)
+
+        psi_1 = np.prod(np.exp(-0.5 * np.power(corpus.c1[:, np.newaxis, :] - corpus.inducing_points[np.newaxis, :, :], 2) \
+                / (xi_inv + 1)) * np.power(xi_inv + 1, -0.5), axis=2)
+
+        first_term = -0.25 * np.power(corpus.inducing_points[np.newaxis, :, np.newaxis, :] - corpus.inducing_points[np.newaxis, np.newaxis, :, :], 2)
+        inducing_bar = (corpus.inducing_points[np.newaxis, :, np.newaxis, :] + corpus.inducing_points[np.newaxis, np.newaxis, :, :]) / 2
+        second_term = np.power(corpus.c1[:, np.newaxis, np.newaxis] - inducing_bar, 2) / (2 * xi_inv + 1)
+
+        psi_2_s = np.prod(np.exp(first_term - second_term) * np.power(2 * xi_inv + 1, -0.5), axis=3)
+        psi_2 = np.sum(psi_2_s, axis=0)
+
+        tmp = np.linalg.inv( kappa * psi_2 + corpus.Kgg)
+        tmp2 = np.dot(psi_1, tmp)
+        tmp3 = np.dot(tmp2, psi_1.T)
+        W = kappa * np.identity(corpus.M) - kappa**2 * tmp3
+
+        Z_user = np.zeros([corpus.n_user, corpus.n_topic])
+
+        for i in range(corpus.n_user):
+            Z_user[i] = np.mean(corpus.Z_edge[corpus.user_edgerows[i]], axis=0)
+
+        p_user = Z_user / np.sum(Z_user, axis=1)[:, np.newaxis]
+        p_user = np.vstack((p_user, self.p))
+
+        Egh_square = np.zeros(corpus.M)
+        for _ in range(self.h_iter):
+            gh = np.zeros(corpus.M)
+            for mm in range(corpus.M):
+                bph = self.beta * p_user[corpus.story_parent[mm]] * np.exp(h[mm])
+                tmp4 = np.sum(bph * (corpus.lnZ_edge[corpus.story_edgerow[mm]] - psi(bph)) ) + np.sum((W[mm, :] + W[:, mm]) * h)
+                gh[mm] = tmp4
+
+            Egh_square = 0.9 * Egh_square + 0.1 * np.power(gh, 2)
+            h = h + corpus.lrate_gh / np.sqrt( Egh_square + 1e-8 ) * gh
+            print(np.mean(np.abs(gh)), np.mean(np.abs(corpus.lrate_gh / np.sqrt( Egh_square + 1e-8 ))))
+
+        corpus.h = h
+        print('h mean: ', np.mean(corpus.h))
+
+
+
+     
