@@ -9,18 +9,24 @@ HBTP
 │   ├── event
 │   │   ├── raw
 │   │   └── synchronized
-│   ├── stopwords.txt
 │   ├── stopsentences.txt
+│   ├── stopwords.txt
 │   └── story
 │       ├── explicit-error-preprocessed
 │       ├── implicit-error-preprocessed
 │       ├── preprocessed
 │       └── raw
 ├── model
-│   ├── use_preprocess.py
+│   ├── RBFKernel.py
+│   ├── corpus.py
 │   ├── diln.py
 │   ├── hbtp.py
-│   └── hdp.py
+│   ├── hbtp_transmissive.py
+│   ├── hbtp_upstream.py
+│   ├── hdp.py
+│   ├── model.py
+│   ├── test.py
+│   └── use_preprocess.py
 ├── preprocess
 │   ├── WriterWrapper.py
 │   ├── config.ini
@@ -29,19 +35,20 @@ HBTP
 │   ├── format_story.py
 │   ├── parser.py
 │   ├── preprocess.py
+│   ├── split_train_test.py
 │   ├── stats.py
 │   └── synch.py
 ├── requirements.txt
-└─── rumor_detection_acl2017
-    ├── README.txt
-    ├── twitter15
-    │   ├── label.txt
-    │   └── tree
-    ├── twitter16
-    │   ├── label.txt
-    │   └── tree
-    └── twittertest
-        └── label.txt
+└── rumor_detection_acl2017
+    ├── README.txt
+    ├── twitter15
+    │   ├── label.txt
+    │   └── tree
+    ├── twitter16
+    │   ├── label.txt
+    │   └── tree
+    └── twittertest
+        └── label.txt
 ```
 
 ## References
