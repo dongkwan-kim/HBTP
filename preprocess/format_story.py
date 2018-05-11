@@ -2,10 +2,11 @@ import numpy as np
 from nltk import PorterStemmer
 import pandas as pd
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 import os
 import pprint
 import pickle
+from copy import deepcopy
 
 
 DATA_PATH = '../data'
@@ -34,6 +35,19 @@ class FormattedStory:
 
     def __init__(self, story_path_list, stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None,
                  force_save=False):
+        """
+        Attributes
+        ----------
+        :word_ids: list of list or dict of list
+        idx -> [widx_0, widx_1, ..., widx_k]
+        where k is len(set(words)) of story of idx,
+              widx_z is a index of word in story of idx.
+
+        :word_cnt: list of list or dict of list
+        idx -> [cnt_0, cnt_1, ..., cnt_k]
+        where k is len(set(words)) of story of idx,
+              cnt_z is how many widx_z appeared in story of idx.
+        """
         self.story_path_list = story_path_list
         self.stemmer = stemmer()
         self.delimiter = delimiter
@@ -53,17 +67,26 @@ class FormattedStory:
     def pprint(self):
         pprint.pprint(self.__dict__)
 
+    def clone_with_only_mapping(self):
+        tmp = deepcopy(self)
+        tmp.word_ids = defaultdict(list)
+        tmp.word_cnt = defaultdict(list)
+        return tmp
+
     def remove_stop_sentences(self, content: str):
         for ss in self.stop_sentences:
             if ss in content:
                 content = content.replace(ss, '')
         return content
 
+    def clear_lambda(self):
+        self.len_criteria = None
+        self.wf_criteria = None
+
     def dump(self):
         file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
         with open(os.path.join(STORY_PATH, file_name), 'wb') as f:
-            self.len_criteria = None
-            self.wf_criteria = None
+            self.clear_lambda()
             pickle.dump(self, f)
         print('Dumped: {0}'.format(file_name))
 

@@ -1,18 +1,25 @@
 import use_preprocess as up
 from format_event import *
 from format_story import *
+from split_train_test import *
 
 import diln
 import hdp
 import hbtp_upstream
 import hbtp_transmissive
+import hbtp
 
 up.use_preprocess()
 
 
 def get_formatted():
     formatted_events = get_formatted_events()
-    formatted_stories = get_formatted_stories()
+    split_story = SplitStory(force_save=True)
+    split_story.split(
+        story_ratio_for_test=0.3,
+        cnt_ratio_for_test=0.3,
+    )
+    formatted_stories = split_story.get_train()
     return formatted_events, formatted_stories
 
 
