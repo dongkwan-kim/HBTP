@@ -10,7 +10,7 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 
 DATA_PATH = '../data'
-STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed')
+STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed-label')
 EVENT_PATH = os.path.join(DATA_PATH, 'event', 'synchronized')
 
 
