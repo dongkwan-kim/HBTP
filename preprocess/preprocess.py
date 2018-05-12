@@ -46,7 +46,7 @@ def preprocess_story():
     stop_sentences = get_stop_sentences()
 
     for csv_f in csv_files:
-        f = open(os.path.join(INPUT_PATH, csv_f), 'r')
+        f = open(os.path.join(INPUT_PATH, csv_f), 'r', encoding='utf-8')
         reader = csv.DictReader(f)
         writer_file = os.path.join(OUTPUT_PATH, '_'.join(csv_f.split('_')[:-1]))
         writer = WriterWrapper(writer_file, reader.fieldnames)
@@ -75,4 +75,3 @@ def preprocess_story():
 
 if __name__ == '__main__':
     preprocess_story()
-

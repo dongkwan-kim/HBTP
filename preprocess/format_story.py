@@ -10,7 +10,7 @@ from copy import deepcopy
 
 
 DATA_PATH = '../data'
-STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed')
+STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed-label')
 
 
 def get_stops():
