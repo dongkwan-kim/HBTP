@@ -47,6 +47,9 @@ class FormattedStory:
         idx -> [cnt_0, cnt_1, ..., cnt_k]
         where k is len(set(words)) of story of idx,
               cnt_z is how many widx_z appeared in story of idx.
+
+        :id_to_label: dict from id: int to label: str
+        idx -> label (true, false, non-rumor, unverified)
         """
         self.story_path_list = story_path_list
         self.stemmer = stemmer()
@@ -55,8 +58,9 @@ class FormattedStory:
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
         self.stop_words, self.stop_sentences = get_stops()
         self.force_save = force_save
-        self.story_order = story_order
 
+        # Attributes that should be loaded
+        self.story_order = story_order
         self.word_ids = None
         self.word_cnt = None
         self.id_to_label = None

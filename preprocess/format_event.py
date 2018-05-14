@@ -21,12 +21,14 @@ class FormattedEvent:
         :param force_save: boolean
         """
         self.event_path_list = event_path_list
+        self.force_save = force_save
+
+        # Attributes that should be loaded
         self.parent_to_child = None
         self.child_to_parent_and_story = None
         self.story_to_users = None
         self.user_to_stories = None
         self.story_to_id = story_to_id
-        self.force_save = force_save
 
     def get_twitter_year(self):
         return 'twitter1516'
