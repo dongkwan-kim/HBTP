@@ -7,6 +7,7 @@ import os
 import pprint
 import pickle
 from copy import deepcopy
+import random
 
 
 DATA_PATH = '../data'
@@ -34,7 +35,7 @@ def get_story_files():
 class FormattedStory:
 
     def __init__(self, story_path_list, stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None,
-                 force_save=False):
+                 story_order='shuffle', force_save=False):
         """
         Attributes
         ----------
@@ -55,11 +56,13 @@ class FormattedStory:
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
         self.stop_words, self.stop_sentences = get_stops()
         self.force_save = force_save
+        self.story_order = story_order
 
         self.word_ids = None
         self.word_cnt = None
         self.word_to_id = None
         self.id_to_word = None
+        self.story_to_id = None
 
     def get_twitter_year(self):
         return 'twitter1516'
@@ -99,6 +102,8 @@ class FormattedStory:
                 self.word_cnt = loaded.word_cnt
                 self.word_to_id = loaded.word_to_id
                 self.id_to_word = loaded.id_to_word
+                self.story_to_id = loaded.story_to_id
+                self.story_order = loaded.story_order
             print('Loaded: {0}'.format(file_name))
             return True
         except:
@@ -138,30 +143,38 @@ class FormattedStory:
             if i % 10 == 0 and __name__ == '__main__':
                 print(i)
 
-        story_set = set(story_id_to_contents.keys())
-        story_to_id = dict((story, idx) for idx, story in enumerate(sorted(story_set)))
-        story_id_to_contents = dict((story_to_id[story_id], contents)
-                                    for story_id, contents in story_id_to_contents.items())
+        story_list = list(set(story_id_to_contents.keys()))
+        if self.story_order == 'shuffle':
+            random.shuffle(story_list)
+        elif self.story_order == 'sorted':
+            story_list = sorted(story_list)
+        else:
+            raise NotImplementedError
+
+        story_to_id = dict((story, idx) for idx, story in enumerate(story_list))
+        id_to_contents = dict((story_to_id[story_id], contents)
+                              for story_id, contents in story_id_to_contents.items())
 
         # Cut by word_frequency
         for i in range(len(stories)):
-            words_prev = story_id_to_contents[i]
+            words_prev = id_to_contents[i]
             words = [word for word in words_prev if self.wf_criteria(word_frequency[word])]
-            story_id_to_contents[i] = words
+            id_to_contents[i] = words
 
         # Construct a set of words
         vocab = set()
-        for words in story_id_to_contents.values():
+        for words in id_to_contents.values():
             vocab = vocab | set(words)
 
         word_to_id = {word: idx for idx, word in enumerate(sorted(vocab))}
         id_to_word = {idx: word for word, idx in word_to_id.items()}
-        cid_to_wids = {i: [word_to_id[word] for word in story_id_to_contents[i]] for i in range(len(story_id_to_contents))}
+        cid_to_wids = {i: [word_to_id[word] for word in id_to_contents[i]] for i in range(len(id_to_contents))}
 
         self.word_ids = [np.array(list(Counter(cid_to_wids[i]).keys())) for i in range(len(cid_to_wids))]
         self.word_cnt = [np.array(list(Counter(cid_to_wids[i]).values())) for i in range(len(cid_to_wids))]
         self.word_to_id = word_to_id
         self.id_to_word = id_to_word
+        self.story_to_id = story_to_id
 
     def get_word_from_id(self, wid):
         if self.id_to_word:

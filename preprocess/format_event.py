@@ -1,3 +1,4 @@
+from format_story import *
 import pandas as pd
 from collections import defaultdict
 import os
@@ -13,12 +14,13 @@ def get_event_files():
 
 class FormattedEvent:
 
-    def __init__(self, event_path_list, force_save=False):
+    def __init__(self, event_path_list, story_to_id=None, force_save=False):
         self.event_path_list = event_path_list
         self.parent_to_child = None
         self.child_to_parent_and_story = None
         self.story_to_users = None
         self.user_to_stories = None
+        self.story_to_id = story_to_id
         self.force_save = force_save
 
     def get_twitter_year(self):
@@ -42,6 +44,7 @@ class FormattedEvent:
                 self.child_to_parent_and_story = loaded.child_to_parent_and_story
                 self.story_to_users = loaded.story_to_users
                 self.user_to_stories = loaded.user_to_stories
+                self.story_to_id = loaded.story_to_id
             print('Loaded: {0}'.format(file_name))
             return True
         except:
@@ -89,8 +92,9 @@ class FormattedEvent:
         story_to_users = {k: [vv for vv in v if vv not in leaf_users] for k, v in story_to_users.items()}
         user_set = set(u for u in user_set if u not in leaf_users)
 
+        # If self.story_to_id is given, use it. Otherwise use index from sorted(story_set)
+        story_to_id = self.story_to_id or dict((story, idx) for idx, story in enumerate(sorted(story_set)))
         user_to_id = dict((user, idx) for idx, user in enumerate(sorted(user_set)))
-        story_to_id = dict((story, idx) for idx, story in enumerate(sorted(story_set)))
 
         # Indexify
         self.parent_to_child = self.indexify(parent_to_child, user_to_id, user_to_id)
@@ -134,11 +138,16 @@ class FormattedEvent:
         return r_dict
 
 
-def get_formatted_events(force_save=False) -> FormattedEvent:
-    fe = FormattedEvent(get_event_files(), force_save=force_save)
+def get_formatted_events(story_to_id=None, force_save=False) -> FormattedEvent:
+    fe = FormattedEvent(
+        get_event_files(),
+        story_to_id=story_to_id,
+        force_save=force_save
+    )
     fe.get_formatted()
     return fe
 
 
 if __name__ == '__main__':
-    get_formatted_events().dump()
+    stories = get_formatted_stories()
+    get_formatted_events(stories.story_to_id, force_save=True).dump()

@@ -13,8 +13,8 @@ up.use_preprocess()
 
 
 def get_formatted():
-    formatted_events = get_formatted_events()
     formatted_stories = get_formatted_stories()
+    formatted_events = get_formatted_events(story_to_id=formatted_stories.story_to_id)
     return formatted_events, formatted_stories
 
 
