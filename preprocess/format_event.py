@@ -27,23 +27,6 @@ class FormattedEvent:
     def pprint(self):
         pprint.pprint(self.__dict__)
 
-    def indexify(self, target_dict: dict, key_to_id: dict, value_to_id: dict, is_c2ps=False):
-        """
-        :param target_dict: dict {key -> list of values}
-        :param key_to_id: dict
-        :param value_to_id: dict
-        :param is_c2ps: is_child_to_parent_and_story
-        :return: dict {key_to_id[key] -> value_to_id[value]}
-        """
-        r_dict = {}
-        for key, values in target_dict.items():
-            if not is_c2ps:
-                r_dict[key_to_id[key]] = list(map(lambda v: value_to_id[v], values))
-            else:
-                # c2ps: key:user -> (key:user, value:story)
-                r_dict[key_to_id[key]] = list(map(lambda v: (key_to_id[v[0]], value_to_id[v[1]]), values))
-        return r_dict
-
     def dump(self):
         file_name = 'FormattedEvent_{}.pkl'.format(self.get_twitter_year())
         with open(os.path.join(EVENT_PATH, file_name), 'wb') as f:
@@ -70,11 +53,7 @@ class FormattedEvent:
         if not self.force_save and self.load():
             return
 
-        events = pd.concat((pd.read_csv(path) for path in self.event_path_list), ignore_index=True)
-
-        events = events.drop(['event_id'], axis=1)
-        events = events.drop_duplicates()
-        events = events.reset_index(drop=True)
+        events = self.get_events(self.event_path_list)
 
         parent_to_child = defaultdict(list)
         child_to_parent_and_story = defaultdict(list)
@@ -100,11 +79,7 @@ class FormattedEvent:
                 print(i)
 
         # Construct a set of leaf users
-        leaf_users = set()
-        for parent, child in parent_to_child.items():
-            for leaf_user in child:
-                if leaf_user not in parent_to_child and len(user_to_stories[leaf_user]) == 1:
-                    leaf_users.add(leaf_user)
+        leaf_users = self.get_leaf_user_set(parent_to_child, user_to_stories)
 
         # Remove leaf users
         parent_to_child_final = {k: [vv for vv in v if vv not in leaf_users] for k, v in parent_to_child.items()}
@@ -122,6 +97,41 @@ class FormattedEvent:
         self.child_to_parent_and_story = self.indexify(child_to_parent_and_story, user_to_id, story_to_id, is_c2ps=True)
         self.story_to_users = self.indexify(story_to_users, story_to_id, user_to_id)
         self.user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
+
+    def get_events(self, event_path_list):
+        events = pd.concat((pd.read_csv(path) for path in event_path_list), ignore_index=True)
+
+        # Remove duplicated events
+        events = events.drop(['event_id'], axis=1)
+        events = events.drop_duplicates()
+        events = events.reset_index(drop=True)
+
+        return events
+
+    def get_leaf_user_set(self, parent_to_child, user_to_stories):
+        leaf_users = set()
+        for parent, child in parent_to_child.items():
+            for leaf_user in child:
+                if leaf_user not in parent_to_child and len(user_to_stories[leaf_user]) == 1:
+                    leaf_users.add(leaf_user)
+        return leaf_users
+
+    def indexify(self, target_dict: dict, key_to_id: dict, value_to_id: dict, is_c2ps=False):
+        """
+        :param target_dict: dict {key -> list of values}
+        :param key_to_id: dict
+        :param value_to_id: dict
+        :param is_c2ps: is_child_to_parent_and_story
+        :return: dict {key_to_id[key] -> value_to_id[value]}
+        """
+        r_dict = {}
+        for key, values in target_dict.items():
+            if not is_c2ps:
+                r_dict[key_to_id[key]] = list(map(lambda v: value_to_id[v], values))
+            else:
+                # c2ps: key:user -> (key:user, value:story)
+                r_dict[key_to_id[key]] = list(map(lambda v: (key_to_id[v[0]], value_to_id[v[1]]), values))
+        return r_dict
 
 
 def get_formatted_events() -> FormattedEvent:
