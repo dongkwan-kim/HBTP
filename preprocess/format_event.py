@@ -134,8 +134,8 @@ class FormattedEvent:
         return r_dict
 
 
-def get_formatted_events() -> FormattedEvent:
-    fe = FormattedEvent(get_event_files())
+def get_formatted_events(force_save=False) -> FormattedEvent:
+    fe = FormattedEvent(get_event_files(), force_save=force_save)
     fe.get_formatted()
     return fe
 
