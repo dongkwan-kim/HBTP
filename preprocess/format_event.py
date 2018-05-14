@@ -15,6 +15,11 @@ def get_event_files():
 class FormattedEvent:
 
     def __init__(self, event_path_list, story_to_id=None, force_save=False):
+        """
+        :param event_path_list: list of str
+        :param story_to_id: dict, str -> str
+        :param force_save: boolean
+        """
         self.event_path_list = event_path_list
         self.parent_to_child = None
         self.child_to_parent_and_story = None
@@ -78,7 +83,7 @@ class FormattedEvent:
             user_set.update([parent, user])
             story_set.add(story)
 
-            if i % 1000 == 0 and __name__ == '__main__':
+            if i % 10000 == 0 and __name__ == '__main__':
                 print(i)
 
         # Construct a set of leaf users
