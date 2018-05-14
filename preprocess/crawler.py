@@ -3,12 +3,11 @@
 __author__ = 'Dongkwan Kim'
 
 
-import twitter
-import configparser
 from newspaper import Article
 from WriterWrapper import WriterWrapper
 import time
 import os
+from TwitterAPIWrapper import TwitterAPIWrapper
 
 
 OUTPUT_PATH = '../data/story/raw'
@@ -34,30 +33,10 @@ def get_id_label_list(path):
     } for label, tweet_id in label_pairs]
 
 
-def api_twitter(config_file_path):
-    config = configparser.ConfigParser()
-    config.read(config_file_path)
-    config_t = config['TWITTER']
+class CrawlerAPIWrapper(TwitterAPIWrapper):
 
-    consumer_key = config_t['CONSUMER_KEY']
-    consumer_secret = config_t['CONSUMER_SECRET']
-    access_token = config_t['ACCESS_TOKEN']
-    access_token_secret = config_t['ACCESS_TOKEN_SECRET']
-
-    _api = twitter.Api(
-        consumer_key=consumer_key,
-        consumer_secret=consumer_secret,
-        access_token_key=access_token,
-        access_token_secret=access_token_secret
-    )
-
-    return _api
-
-
-class TwitterAPIWrapper:
-
-    def __init__(self, api_path):
-        self.api = api_twitter(api_path)
+    def __init__(self, config_file_path):
+        super().__init__(config_file_path)
 
     def get_status(self, status_id):
         status = self.api.GetStatus(status_id)
@@ -144,7 +123,7 @@ def merge_dicts(lst_of_dct):
 
 
 def story_table(config_name):
-    my_api = TwitterAPIWrapper(config_name)
+    my_api = CrawlerAPIWrapper(config_name)
 
     fieldnames = ['tweet_id', 'label', 'tweet_text', 'url', 'crawled_or_error_log', 'title', 'content']
 
