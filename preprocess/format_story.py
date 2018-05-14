@@ -9,7 +9,6 @@ import pickle
 from copy import deepcopy
 import random
 
-
 DATA_PATH = '../data'
 STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed-label')
 
@@ -48,6 +47,9 @@ class FormattedStory:
         idx -> [cnt_0, cnt_1, ..., cnt_k]
         where k is len(set(words)) of story of idx,
               cnt_z is how many widx_z appeared in story of idx.
+
+        :id_to_label: dict from id: int to label: str
+        idx -> label (true, false, non-rumor, unverified)
         """
         self.story_path_list = story_path_list
         self.stemmer = stemmer()
@@ -56,10 +58,12 @@ class FormattedStory:
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
         self.stop_words, self.stop_sentences = get_stops()
         self.force_save = force_save
-        self.story_order = story_order
 
+        # Attributes that should be loaded
+        self.story_order = story_order
         self.word_ids = None
         self.word_cnt = None
+        self.id_to_label = None
         self.word_to_id = None
         self.id_to_word = None
         self.story_to_id = None
@@ -100,6 +104,7 @@ class FormattedStory:
                 loaded = pickle.load(f)
                 self.word_ids = loaded.word_ids
                 self.word_cnt = loaded.word_cnt
+                self.id_to_label = loaded.id_to_label
                 self.word_to_id = loaded.word_to_id
                 self.id_to_word = loaded.id_to_word
                 self.story_to_id = loaded.story_to_id
@@ -122,6 +127,9 @@ class FormattedStory:
         # key: int, value: list
         story_id_to_contents = dict()
 
+        # key: int, value: str
+        story_id_to_label = dict()
+
         # key: str, value: int
         word_frequency = Counter()
 
@@ -141,6 +149,9 @@ class FormattedStory:
             tweet_id = str(story['tweet_id'])
             story_id_to_contents[tweet_id] = words
 
+            label = str(story['label'])
+            story_id_to_label[tweet_id] = label
+
             if i % 100 == 0 and __name__ == '__main__':
                 print(i)
 
@@ -155,6 +166,8 @@ class FormattedStory:
         story_to_id = dict((story, idx) for idx, story in enumerate(story_list))
         id_to_contents = dict((story_to_id[story_id], contents)
                               for story_id, contents in story_id_to_contents.items())
+        id_to_label = dict((story_to_id[story_id], label)
+                           for story_id, label in story_id_to_label.items())
 
         # Cut by word_frequency
         for i in range(len(stories)):
@@ -173,6 +186,7 @@ class FormattedStory:
 
         self.word_ids = [np.array(list(Counter(cid_to_wids[i]).keys())) for i in range(len(cid_to_wids))]
         self.word_cnt = [np.array(list(Counter(cid_to_wids[i]).values())) for i in range(len(cid_to_wids))]
+        self.id_to_label = id_to_label
         self.word_to_id = word_to_id
         self.id_to_word = id_to_word
         self.story_to_id = story_to_id
