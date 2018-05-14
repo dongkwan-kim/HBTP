@@ -138,9 +138,10 @@ class FormattedStory:
 
             word_frequency = sum((word_frequency, Counter(words)), Counter())
 
-            story_id_to_contents[story['tweet_id']] = words
+            tweet_id = str(story['tweet_id'])
+            story_id_to_contents[tweet_id] = words
 
-            if i % 10 == 0 and __name__ == '__main__':
+            if i % 100 == 0 and __name__ == '__main__':
                 print(i)
 
         story_list = list(set(story_id_to_contents.keys()))
