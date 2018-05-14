@@ -7,9 +7,9 @@ DATA_PATH = '../data'
 STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed-label')
 
 
-class SplitStory:
+class BaseSplitStory:
 
-    def __init__(self, story_ratio_for_test=0.3, cnt_ratio_for_test=0.3, force_save=False):
+    def __init__(self, story_ratio_for_test, force_save=False):
         self.story_all = get_formatted_stories()
 
         self.story_test = self.story_all.clone_with_only_mapping()
@@ -17,14 +17,13 @@ class SplitStory:
 
         self.already_split = False
         self.story_ratio_for_test = story_ratio_for_test
-        self.cnt_ratio_for_test = cnt_ratio_for_test
         self.force_save = force_save
 
+    def get_file_name(self):
+        return 'SplitStory_{0}.pkl'.format(self.story_ratio_for_test)
+
     def dump(self):
-        file_name = 'SplitStory_{0}_{1}.pkl'.format(
-            self.story_ratio_for_test,
-            self.cnt_ratio_for_test,
-        )
+        file_name = self.get_file_name()
         with open(os.path.join(STORY_PATH, file_name), 'wb') as f:
             self.story_all.clear_lambda()
             self.story_test.clear_lambda()
@@ -33,10 +32,7 @@ class SplitStory:
         print('Dumped: {0}'.format(file_name))
 
     def load(self):
-        file_name = 'SplitStory_{0}_{1}.pkl'.format(
-            self.story_ratio_for_test,
-            self.cnt_ratio_for_test,
-        )
+        file_name = self.get_file_name()
         try:
             with open(os.path.join(STORY_PATH, file_name), 'rb') as f:
                 loaded = pickle.load(f)
@@ -55,6 +51,16 @@ class SplitStory:
     def get_test(self):
         print('Using test set, (Split: {0})'.format(self.already_split))
         return self.story_test
+
+
+class SplitStoryCount(BaseSplitStory):
+
+    def __init__(self, story_ratio_for_test=0.3, cnt_ratio_for_test=0.3, force_save=False):
+        super().__init__(story_ratio_for_test, force_save)
+        self.cnt_ratio_for_test = cnt_ratio_for_test
+
+    def get_file_name(self):
+        return 'SplitStory_{0}_{1}.pkl'.format(self.story_ratio_for_test, self.cnt_ratio_for_test)
 
     def split(self, story_ratio_for_test=None, cnt_ratio_for_test=None):
 
@@ -136,6 +142,6 @@ class SplitStory:
 
 
 if __name__ == '__main__':
-    data = SplitStory()
+    data = SplitStoryCount()
     data.split()
     data.dump()

@@ -13,13 +13,8 @@ up.use_preprocess()
 
 
 def get_formatted():
-    formatted_events = get_formatted_events()
-    split_story = SplitStory(force_save=True)
-    split_story.split(
-        story_ratio_for_test=0.3,
-        cnt_ratio_for_test=0.3,
-    )
-    formatted_stories = split_story.get_train()
+    formatted_stories = get_formatted_stories()
+    formatted_events = get_formatted_events(story_to_id=formatted_stories.story_to_id)
     return formatted_events, formatted_stories
 
 
