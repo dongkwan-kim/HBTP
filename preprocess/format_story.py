@@ -115,7 +115,7 @@ class FormattedStory:
         stories = stories.reset_index(drop=True)
 
         # key: int, value: list
-        id_to_content = dict()
+        story_id_to_contents = dict()
 
         # key: str, value: int
         word_frequency = Counter()
@@ -132,25 +132,31 @@ class FormattedStory:
             words = [v for v in words if self.len_criteria(len(v))]
 
             word_frequency = sum((word_frequency, Counter(words)), Counter())
-            id_to_content[i] = words
+
+            story_id_to_contents[story['tweet_id']] = words
 
             if i % 10 == 0 and __name__ == '__main__':
                 print(i)
 
+        story_set = set(story_id_to_contents.keys())
+        story_to_id = dict((story, idx) for idx, story in enumerate(sorted(story_set)))
+        story_id_to_contents = dict((story_to_id[story_id], contents)
+                                    for story_id, contents in story_id_to_contents.items())
+
         # Cut by word_frequency
         for i in range(len(stories)):
-            words_prev = id_to_content[i]
+            words_prev = story_id_to_contents[i]
             words = [word for word in words_prev if self.wf_criteria(word_frequency[word])]
-            id_to_content[i] = words
+            story_id_to_contents[i] = words
 
         # Construct a set of words
         vocab = set()
-        for words in id_to_content.values():
+        for words in story_id_to_contents.values():
             vocab = vocab | set(words)
 
         word_to_id = {word: idx for idx, word in enumerate(sorted(vocab))}
         id_to_word = {idx: word for word, idx in word_to_id.items()}
-        cid_to_wids = {i: [word_to_id[word] for word in id_to_content[i]] for i in range(len(id_to_content))}
+        cid_to_wids = {i: [word_to_id[word] for word in story_id_to_contents[i]] for i in range(len(story_id_to_contents))}
 
         self.word_ids = [np.array(list(Counter(cid_to_wids[i]).keys())) for i in range(len(cid_to_wids))]
         self.word_cnt = [np.array(list(Counter(cid_to_wids[i]).values())) for i in range(len(cid_to_wids))]
@@ -168,11 +174,11 @@ class FormattedStory:
         return None
 
 
-def get_formatted_stories() -> FormattedStory:
-    fs = FormattedStory(get_story_files())
+def get_formatted_stories(force_save=False) -> FormattedStory:
+    fs = FormattedStory(get_story_files(), force_save=force_save)
     fs.get_formatted()
     return fs
 
 
 if __name__ == '__main__':
-    get_formatted_stories().dump()
+    get_formatted_stories(force_save=True).dump()
