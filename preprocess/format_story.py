@@ -48,7 +48,7 @@ class FormattedStory:
         where k is len(set(words)) of story of idx,
               cnt_z is how many widx_z appeared in story of idx.
 
-        :id_to_label: dict from id: int to label: str
+        :story_label: dict from id: int to label: str
         idx -> label (true, false, non-rumor, unverified)
         """
         self.story_path_list = story_path_list
@@ -63,7 +63,7 @@ class FormattedStory:
         self.story_order = story_order
         self.word_ids = None
         self.word_cnt = None
-        self.id_to_label = None
+        self.story_label = None
         self.word_to_id = None
         self.id_to_word = None
         self.story_to_id = None
@@ -104,7 +104,7 @@ class FormattedStory:
                 loaded = pickle.load(f)
                 self.word_ids = loaded.word_ids
                 self.word_cnt = loaded.word_cnt
-                self.id_to_label = loaded.id_to_label
+                self.story_label = loaded.story_label
                 self.word_to_id = loaded.word_to_id
                 self.id_to_word = loaded.id_to_word
                 self.story_to_id = loaded.story_to_id
@@ -186,7 +186,7 @@ class FormattedStory:
 
         self.word_ids = [np.array(list(Counter(cid_to_wids[i]).keys())) for i in range(len(cid_to_wids))]
         self.word_cnt = [np.array(list(Counter(cid_to_wids[i]).values())) for i in range(len(cid_to_wids))]
-        self.id_to_label = id_to_label
+        self.story_label = [id_to_label[i] for i in range(len(id_to_label))]
         self.word_to_id = word_to_id
         self.id_to_word = id_to_word
         self.story_to_id = story_to_id
