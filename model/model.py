@@ -31,11 +31,14 @@ class BaseModel:
             self.V[k] = (1. / self.n_topic) / np.prod(1. - self.V[:k])
         self.V[self.n_topic - 1] = 1.
 
+        self.A = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
+        self.B = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
+
         self.p = self.getP(self.V)
         self.mean = np.zeros(self.n_topic)
         self.gamma = np.random.gamma(shape=1, scale=1, size=[self.n_voca, self.n_topic]) + self.dir_prior
         self.c_a_max_step = 5
-        self.is_compute_lb = True
+        self.is_compute_lb = False
         self.lbs = []
 
     def fit(self, corpus, max_iter=100):
