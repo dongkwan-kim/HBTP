@@ -12,8 +12,6 @@ class BaseCorpus:
 
         self.word_cnt = word_cnt
 
-        self.n_topic = n_topic
-
         self.A = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
         self.B = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
 
