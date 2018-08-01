@@ -1,4 +1,5 @@
 import use_preprocess as up
+up.use_preprocess()
 from format_event import *
 from format_story import *
 from split_train_test import *
@@ -8,9 +9,6 @@ import hdp
 import hbtp_upstream
 import hbtp_transmissive
 import hbtp
-
-up.use_preprocess()
-
 
 def get_formatted():
     formatted_stories = get_formatted_stories()
