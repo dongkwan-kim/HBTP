@@ -28,6 +28,7 @@ class FormattedEvent:
         self.child_to_parent_and_story = None
         self.story_to_users = None
         self.user_to_stories = None
+        self.user_to_id = None
         self.story_to_id = story_to_id
 
     def get_twitter_year(self):
@@ -51,6 +52,7 @@ class FormattedEvent:
                 self.child_to_parent_and_story = loaded.child_to_parent_and_story
                 self.story_to_users = loaded.story_to_users
                 self.user_to_stories = loaded.user_to_stories
+                self.user_to_id = loaded.user_to_id
                 self.story_to_id = loaded.story_to_id
             print('Loaded: {0}'.format(file_name))
             return True
@@ -108,6 +110,8 @@ class FormattedEvent:
         self.child_to_parent_and_story = self.indexify(child_to_parent_and_story, user_to_id, story_to_id, is_c2ps=True)
         self.story_to_users = self.indexify(story_to_users, story_to_id, user_to_id)
         self.user_to_stories = self.indexify(user_to_stories, user_to_id, story_to_id)
+
+        self.user_to_id = user_to_id
 
     def get_events(self, event_path_list):
         events = pd.concat((pd.read_csv(path) for path in event_path_list), ignore_index=True)
