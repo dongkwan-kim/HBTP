@@ -113,6 +113,24 @@ class UserNetwork:
     def get_num_of_crawled_users(self) -> int:
         return max(len(self.user_id_to_friend_ids.keys()), len(self.user_id_to_follower_ids.keys()))
 
+    def indexify_users(self, user_to_id: dict):
+        user_id_to_friend_ids, user_id_to_follower_ids = dict(), dict()
+        for user_id, friend_ids in self.user_id_to_friend_ids.items():
+            if friend_ids is not None:
+                user_id_to_friend_ids[user_to_id[user_id]] = [user_to_id[str(friend_id)] for friend_id in friend_ids
+                                                              if str(friend_id) in user_to_id.keys()]
+            else:
+                user_id_to_friend_ids[user_to_id[user_id]] = None
+
+        for user_id, follower_ids in self.user_id_to_follower_ids.items():
+            if follower_ids is not None:
+                user_id_to_follower_ids[user_to_id[user_id]] = [user_to_id[str(follower_id)] for follower_id in follower_ids
+                                                                if str(follower_id) in user_to_id.keys()]
+            else:
+                user_id_to_follower_ids[user_to_id[user_id]] = None
+        self.user_id_to_friend_ids = user_id_to_friend_ids
+        self.user_id_to_follower_ids = user_id_to_follower_ids
+
 
 class UserNetworkAPIWrapper(TwitterAPIWrapper):
 
@@ -359,10 +377,9 @@ if __name__ == '__main__':
     start_time = time.time()
 
     user_set_from_fe = None
-    if 'API_RUN' in MODE:
-        formatted_stories = get_formatted_stories()
-        formatted_events = get_formatted_events(story_to_id=formatted_stories.story_to_id)
-        user_set_from_fe = set(formatted_events.user_to_id.keys())
+    formatted_stories = get_formatted_stories()
+    formatted_events = get_formatted_events(story_to_id=formatted_stories.story_to_id)
+    user_set_from_fe = set(formatted_events.user_to_id.keys())
 
     if MODE == 'API_TEST':
         user_network_api = UserNetworkAPIWrapper(
@@ -388,11 +405,18 @@ if __name__ == '__main__':
         )
         multiprocess_user_network_api.get_and_dump_user_network_with_multiprocess(goal=max_process * 60 * 6)
 
+    elif MODE == 'INDEXIFY':
+        user_network = UserNetwork()
+        user_network.load()
+        user_network.indexify_users(formatted_events.user_to_id)
+        user_network.dump()
+
     else:
         user_network = UserNetwork()
         user_network.load()
         print('Total {0} users.'.format(len(user_network.user_id_to_friend_ids)))
         print('Total {0} error users.'.format(len(user_network.error_user_set)))
+        print('E.g. {0}\'s friend {1}'.format(2392, user_network.user_id_to_friend_ids[2392]))
 
     total_consumed_secs = time.time() - start_time
     print('Total {0}h {1}m {2}s consumed'.format(

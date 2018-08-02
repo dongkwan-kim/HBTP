@@ -56,8 +56,8 @@ class FormattedEvent:
                 self.story_to_id = loaded.story_to_id
             print('Loaded: {0}'.format(file_name))
             return True
-        except:
-            print('Load Failed: {0}'.format(file_name))
+        except Exception as e:
+            print('Load Failed: {0}'.format(file_name), e)
             return False
 
     def get_formatted(self):
