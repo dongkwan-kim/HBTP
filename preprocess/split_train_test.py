@@ -55,7 +55,7 @@ class BaseSplitStory:
 
 class SplitStoryCount(BaseSplitStory):
 
-    def __init__(self, story_ratio_for_test=0.3, cnt_ratio_for_test=0.3, force_save=False):
+    def __init__(self, story_ratio_for_test=0., cnt_ratio_for_test=0., force_save=False):
         super().__init__(story_ratio_for_test, force_save)
         self.cnt_ratio_for_test = cnt_ratio_for_test
 
