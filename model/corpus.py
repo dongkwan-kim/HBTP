@@ -12,7 +12,7 @@ class BaseCorpus:
 
         self.word_cnt = word_cnt
 
-        self.A = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
-        self.B = np.random.gamma(shape=1, scale=1, size=[self.M, self.n_topic])
+        self.A = np.random.gamma(shape=1, scale=1, size=[self.M, n_topic])
+        self.B = np.random.gamma(shape=1, scale=1, size=[self.M, n_topic])
 
         self.Nm = np.array([sum(word_cnt[i]) for i in range(self.M)])
