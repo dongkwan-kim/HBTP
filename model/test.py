@@ -1,14 +1,15 @@
-import use_preprocess as up
-up.use_preprocess()
-from format_event import *
-from format_story import *
-from split_train_test import *
-
 import diln
 import hdp
 import hbtp_upstream
 import hbtp_transmissive
 import hbtp
+import use_preprocess as up
+up.use_preprocess()
+
+from format_event import *
+from format_story import *
+from split_train_test import *
+
 
 def get_formatted():
     formatted_stories = get_formatted_stories()
@@ -36,12 +37,12 @@ def get_corpus(corpus_cls, f_events: FormattedEvent, f_stories: FormattedStory):
 
 
 def run_model(model_cls, corpus, n_topic=100):
-    model = model_cls(
+    _model = model_cls(
         n_topic=n_topic,
         n_voca=corpus.n_voca,
     )
-    model.fit(corpus)
-    return model
+    _model.fit(corpus)
+    return _model
 
 
 if __name__ == '__main__':

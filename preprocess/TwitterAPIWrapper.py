@@ -24,12 +24,19 @@ class TwitterAPIWrapper:
                 access_token_key=access_token,
                 access_token_secret=access_token_secret
             )
-        except:
-            print('Failed to load Twitter API Configs. Do not worry, you can still use this.')
+        except Exception as e:
+            print('Failed to load Twitter API Configs. Do not worry, you can still use this.\n', str(e))
             _api = None
 
         return _api
 
+    def verify_credentials(self):
+        try:
+            return self.api.VerifyCredentials()
+        except Exception as e:
+            return str(e)
+
 
 if __name__ == '__main__':
-    api = TwitterAPIWrapper('')
+    api = TwitterAPIWrapper('./config/config_2.ini')
+    print(api.verify_credentials())
