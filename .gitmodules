@@ -1,0 +1,3 @@
+[submodule "baseline/Rumor_RvNN"]
+	path = baseline/Rumor_RvNN
+	url = git@github.com:todoaskit/Rumor_RvNN.git
