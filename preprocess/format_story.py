@@ -13,12 +13,12 @@ DATA_PATH = '../data'
 STORY_PATH = os.path.join(DATA_PATH, 'story', 'preprocessed-label')
 
 
-def get_stops():
+def get_stops(data_path=DATA_PATH):
     """
     :return: tuple of two lists: ([...], [...])
     """
-    stop_words = open(os.path.join(DATA_PATH, 'stopwords.txt'), 'r', encoding='utf-8').readlines()
-    stop_sentences = open(os.path.join(DATA_PATH, 'stopsentences.txt'), 'r', encoding='utf-8').readlines()
+    stop_words = open(os.path.join(data_path, 'stopwords.txt'), 'r', encoding='utf-8').readlines()
+    stop_sentences = open(os.path.join(data_path, 'stopsentences.txt'), 'r', encoding='utf-8').readlines()
 
     # strip, lower and reversed sort by sentence's length
     stop_sentences = sorted([ss.strip().lower() for ss in stop_sentences], key=lambda s: -len(s))
@@ -27,13 +27,14 @@ def get_stops():
     return stop_words, stop_sentences
 
 
-def get_story_files():
-    return [os.path.join(STORY_PATH, f) for f in os.listdir(STORY_PATH) if 'csv' in f]
+def get_story_files(story_path=STORY_PATH):
+    return [os.path.join(story_path, f) for f in os.listdir(story_path) if 'csv' in f]
 
 
 class FormattedStory:
 
-    def __init__(self, story_path_list, stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None,
+    def __init__(self, story_path_list, data_path=None,
+                 stemmer=PorterStemmer, delimiter='\s', len_criteria=None, wf_criteria=None,
                  story_order='shuffle', force_save=False):
         """
         Attributes
@@ -51,12 +52,13 @@ class FormattedStory:
         :story_label: dict from id: int to label: str
         idx -> label (true, false, non-rumor, unverified)
         """
+        self.story_path = os.path.join(data_path, 'story', 'preprocessed-label') or STORY_PATH
         self.story_path_list = story_path_list
         self.stemmer = stemmer()
         self.delimiter = delimiter
         self.len_criteria = len_criteria if len_criteria else lambda l: l > 1
         self.wf_criteria = wf_criteria if wf_criteria else lambda wf: 2 < wf < 500
-        self.stop_words, self.stop_sentences = get_stops()
+        self.stop_words, self.stop_sentences = get_stops(data_path)
         self.force_save = force_save
 
         # Attributes that should be loaded
@@ -92,7 +94,7 @@ class FormattedStory:
 
     def dump(self):
         file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
-        with open(os.path.join(STORY_PATH, file_name), 'wb') as f:
+        with open(os.path.join(self.story_path, file_name), 'wb') as f:
             self.clear_lambda()
             pickle.dump(self, f)
         print('Dumped: {0}'.format(file_name))
@@ -100,7 +102,7 @@ class FormattedStory:
     def load(self):
         file_name = 'FormattedStory_{}.pkl'.format(self.get_twitter_year())
         try:
-            with open(os.path.join(STORY_PATH, file_name), 'rb') as f:
+            with open(os.path.join(self.story_path, file_name), 'rb') as f:
                 loaded = pickle.load(f)
                 self.word_ids = loaded.word_ids
                 self.word_cnt = loaded.word_cnt
@@ -202,8 +204,13 @@ class FormattedStory:
         return None
 
 
-def get_formatted_stories(force_save=False) -> FormattedStory:
-    fs = FormattedStory(get_story_files(), force_save=force_save)
+def get_formatted_stories(data_path=DATA_PATH, force_save=False) -> FormattedStory:
+    story_path = os.path.join(data_path, 'story', 'preprocessed-label')
+    fs = FormattedStory(
+        story_path_list=get_story_files(story_path),
+        data_path=data_path,
+        force_save=force_save
+    )
     fs.get_formatted()
     return fs
 
