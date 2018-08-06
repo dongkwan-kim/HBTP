@@ -107,3 +107,4 @@ rumor_detection_acl2017/
 *.csv
 *.numbers
 *.pkl
+log*.txt
