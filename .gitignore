@@ -104,6 +104,4 @@ rumor_detection_acl2017/
 .DS_Store
 *.ini
 .idea/
-*.csv
 *.numbers
-*.pkl
