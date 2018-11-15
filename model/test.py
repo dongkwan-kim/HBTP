@@ -1,7 +1,3 @@
-import diln
-import hdp
-import hbtp_upstream
-import hbtp_transmissive
 import hbtp
 import use_preprocess as up
 up.use_preprocess()
@@ -47,5 +43,4 @@ def run_model(model_cls, corpus, n_topic=100):
 
 if __name__ == '__main__':
     events, stories = get_formatted()
-    model = hbtp_transmissive
-    run_model(model.HBTP, get_corpus(model.Corpus, events, stories))
+    run_model(hbtp.HBTP, get_corpus(hbtp.Corpus, events, stories))
