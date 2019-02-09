@@ -65,7 +65,7 @@ HBTP
   title={Homogeneity-Based Transmissive Process To Model True and False News in Social Networks},
   author={Kim, Jooyeon and Kim, Dongkwan and Oh, Alice},
   booktitle={Proceedings of the Eleventh ACM International Conference on Web Search and Data Mining},
-  pages={/* TODO */},
+  pages={348--356},
   year={2019},
   organization={ACM}
 }
@@ -91,6 +91,7 @@ HBTP
   title={Detecting Rumors from Microblogs with Recurrent Neural Networks},
   author={Ma, Jing and Gao, Wei and Mitra, Prasenjit and Kwon, Sejeong and Jansen, Bernard J. and Wong, Kam-Fai and Meeyoung, Cha},
   booktitle={The 25th International Joint Conference on Artificial Intelligence},
+  pages={3818--3824},
   year={2016},
   organization={AAAI}
 }
@@ -98,7 +99,7 @@ HBTP
   title={Detect Rumors in Microblog Posts Using Propagation Structure via Kernel Learning},
   author={Ma, Jing and Gao, Wei and Wong, Kam-Fai},
   booktitle={The 55th annual meeting of the Association for Computational Linguistics},
-  pages={xxx-xxx},
+  pages={708--717},
   year={2017},
   organization={Association for Computational Linguistics}
 }
