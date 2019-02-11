@@ -2,6 +2,9 @@
 
 This is the code and dataset repository of "Homogeneity-Based Transmissive Process To Model True and False News in Social Networks (WSDM 2019)".
 
+[[Arxiv]](https://arxiv.org/abs/1811.09702)
+[[ACM DL]](https://dl.acm.org/citation.cfm?id=3291009)
+
 ## Directory Structure
 ```
 HBTP
