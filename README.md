@@ -67,7 +67,7 @@ HBTP
 @inproceedings{kim2019homogeneity,
   title={Homogeneity-Based Transmissive Process To Model True and False News in Social Networks},
   author={Kim, Jooyeon and Kim, Dongkwan and Oh, Alice},
-  booktitle={Proceedings of the Eleventh ACM International Conference on Web Search and Data Mining},
+  booktitle={Proceedings of the Twelfth ACM International Conference on Web Search and Data Mining},
   pages={348--356},
   year={2019},
   organization={ACM}
