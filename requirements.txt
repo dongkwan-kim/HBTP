@@ -9,7 +9,7 @@ future==0.16.0
 idna==2.6
 jieba3k==0.35.1
 kiwisolver==1.0.1
-lxml==4.2.1
+lxml==4.6.2
 matplotlib==2.2.2
 newspaper3k==0.2.6
 nltk==3.4.5
