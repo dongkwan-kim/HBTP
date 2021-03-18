@@ -17,7 +17,7 @@ numpy==1.14.2
 oauthlib==2.0.7
 palettable==3.1.1
 pandas==0.22.0
-Pillow==5.1.0
+Pillow==8.1.1
 pyparsing==2.2.0
 python-dateutil==2.7.2
 python-twitter==3.4.1
